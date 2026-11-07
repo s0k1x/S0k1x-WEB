@@ -14,7 +14,8 @@ button, input { font: inherit; color: inherit; }
 
 #sky { position: fixed; left: 0; top: 0; z-index: 0; pointer-events: none; }
 .ghost { position: fixed; left: 0; top: 0; z-index: 1; cursor: pointer; transform-origin: 50% 50%; will-change: transform; -webkit-tap-highlight-color: transparent; }
-.ghost svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.ghost canvas, .ghost img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)) drop-shadow(0 0 30px rgba(255, 255, 255, .45)); }
+.ghost::before { content: ""; position: absolute; inset: 8%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0)); pointer-events: none; }
 .ghost:focus-visible { outline: none; }
 .fx { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 

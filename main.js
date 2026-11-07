@@ -1,3 +1,6 @@
+import * as THREE from 'three';
+import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
+
 /* =========================================================
    CONFIG
    ========================================================= */
@@ -21,79 +24,53 @@ const HUES = ['#ff9a6b', '#ff6b7a', '#6bffb0', '#6bb6ff', '#ffd36b', '#6bfff0', 
 /* =========================================================
    Chispa: silueta vectorial 2D con resplandor (SVG), animada cada frame
    ========================================================= */
-const NS = 'http://www.w3.org/2000/svg';
 const stage = $('#ghost');
 const f1 = (n) => (+n).toFixed(1);
-// ---------- geometría procedural del pelaje ----------
-let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-const ell = (cx, cy, rx, ry, n = 72, a0 = 0) => Array.from({ length: n }, (_, i) => { const a = a0 + i / n * Math.PI * 2; return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]; });
-const bez = (p0, p1, p2, p3, t) => { const u = 1 - t; return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]; };
-function spine(segs, n = 40) { const pts = []; segs.forEach((s, k) => { for (let i = k ? 1 : 0; i <= n; i++) pts.push(bez(s[0], s[1], s[2], s[3], i / n)); }); return pts; }
-function tubePts(c, w0, w1) { // contorno de una forma alargada a partir de su eje
-  const L = [], R = [];
-  c.forEach((p, i) => { const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, t = i / (c.length - 1), w = (w0 + (w1 - w0) * Math.pow(t, .85)) * (t > .92 ? (1 - t) / .08 * .8 + .2 : 1);
-    L.push([p[0] - dy / l * w, p[1] + dx / l * w]); R.push([p[0] + dy / l * w, p[1] - dx / l * w]); });
-  return [...L, ...R.reverse()];
-}
-function fur(pts, amp = 7, top = 0) { // mechones curvos hacia fuera
-  const n = pts.length; let cx = 0, cy = 0; pts.forEach((p) => { cx += p[0]; cy += p[1]; }); cx /= n; cy /= n;
-  let d = `M${f1(pts[0][0])} ${f1(pts[0][1])}`;
-  for (let i = 0; i < n; i++) {
-    const a = pts[i], b = pts[(i + 1) % n], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-    let nx = -(b[1] - a[1]), ny = b[0] - a[0]; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
-    if ((mx - cx) * nx + (my - cy) * ny < 0) { nx = -nx; ny = -ny; }
-    const k = amp * (.55 + rnd() * .8) * (1 + Math.max(0, -ny) * top), sw = (rnd() - .5) * amp * .9;
-    d += ` Q${f1(mx + nx * k + ny * sw)} ${f1(my + ny * k - nx * sw)} ${f1(b[0])} ${f1(b[1])}`;
-  }
-  return d + 'Z';
-}
-function claws(x, y, ang, s = 1) { let d = ''; for (let k = -1; k <= 1; k++) { const a = ang + k * .38, bx = x + Math.cos(a) * 14 * s, by = y + Math.sin(a) * 14 * s, tx = x + Math.cos(a) * 30 * s, ty = y + Math.sin(a) * 30 * s, px = -Math.sin(a) * 5 * s, py = Math.cos(a) * 5 * s;
-  d += `M${f1(bx - px)} ${f1(by - py)} Q${f1(tx - px * .4)} ${f1(ty - py * .4)} ${f1(tx + px * .6)} ${f1(ty + py * .6)} Q${f1(bx + px * 1.2)} ${f1(by + py * 1.2)} ${f1(bx + px)} ${f1(by + py)}Z`; } return d; }
-function flameD(h = 1) { return `M0 0 C-22 -18 -26 -52 -8 -78 C-14 -58 -4 -50 4 -60 C2 -86 18 -104 10 -${f1(140 * h)} C34 -110 44 -70 30 -40 C42 -48 40 -64 36 -72 C56 -46 44 -10 18 2 C10 6 4 4 0 0Z`; }
-const WISPS = [[52, 140, .45, -.2], [350, 170, .5, .15], [60, 300, .4, .1]];
-const BODY = 'M200 100 C260 100 304 142 310 204 C316 266 300 312 262 336 C240 350 220 354 200 354 C180 354 160 350 138 336 C100 312 84 266 90 204 C96 142 140 100 200 100 Z';
-const EAR = 'M126 162 C120 120 112 80 102 34 C136 68 166 100 184 130 Z';
-const ARM = 'M104 238 C80 228 62 208 58 188 C56 174 70 168 82 176 C96 186 108 202 122 214 Z';
-stage.innerHTML = `<svg viewBox="0 0 400 420" aria-hidden="true">
-  <defs>
-    <radialGradient id="furG" cx=".5" cy=".42" r=".62"><stop offset="0" stop-color="#ffffff"/><stop offset=".75" stop-color="#ffffff"/><stop offset="1" stop-color="#e6eaf3"/></radialGradient>
-    <radialGradient id="furG2" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9edf5"/></radialGradient>
-    <linearGradient id="wispG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="var(--wisp, #ffffff)" stop-opacity=".85"/><stop offset="1" stop-color="var(--wisp, #ffffff)" stop-opacity="0"/></linearGradient>
-    <radialGradient id="eyeG" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#22222a"/><stop offset=".7" stop-color="#16161b"/><stop offset="1" stop-color="#0d0d11"/></radialGradient>
-    <radialGradient id="mouthG" cx=".5" cy=".35" r=".7"><stop offset="0" stop-color="#3a3b44"/><stop offset=".6" stop-color="#1e1f26"/><stop offset="1" stop-color="#111116"/></radialGradient>
-    <filter id="aura" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="22" result="far"/><feFlood flood-color="#fff" flood-opacity=".5"/><feComposite in2="far" operator="in" result="fg"/>
-      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="near"/><feFlood flood-color="#fff" flood-opacity=".85"/><feComposite in2="near" operator="in" result="ng"/>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.1" result="soft"/><feMerge><feMergeNode in="fg"/><feMergeNode in="ng"/><feMergeNode in="soft"/></feMerge>
-    </filter>
-    <filter id="wglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>
-    <filter id="far" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="38"/></filter>
-  </defs>
-  <ellipse id="halo" cx="200" cy="230" rx="140" ry="130" fill="#fff" opacity=".18" filter="url(#far)"/>
-  <g id="gSil">${WISPS.map(([x, y, s, r], i) => `<g class="wisp" id="w${i}" transform="translate(${x} ${y})"><g filter="url(#wglow)"><path d="${flameD()}" fill="url(#wispG)" transform="scale(${s}) rotate(${r * 57})"/></g></g>`).join('')}</g>
-  <g filter="url(#aura)">
-    <g id="tail"></g>
-    <g id="tf0"><path d="${EAR}" fill="url(#furG2)"/></g>
-    <g id="tf1"><path d="${EAR}" transform="translate(400 0) scale(-1 1)" fill="url(#furG2)"/></g>
-    <g id="footL"><ellipse cx="152" cy="352" rx="30" ry="19" fill="url(#furG2)"/></g>
-    <g id="footR"><ellipse cx="248" cy="352" rx="30" ry="19" fill="url(#furG2)"/></g>
-    <path d="${BODY}" transform="translate(200 230) scale(.95) translate(-200 -230)" fill="url(#furG)"/>
-    <g id="armL"><path d="${ARM}" fill="url(#furG2)"/></g>
-    <g id="armR"><path d="${ARM}" transform="translate(400 0) scale(-1 1)" fill="url(#furG2)"/></g>
-  </g>
-  <g id="gFace" filter="url(#soft)">
-    <path id="eyeL" fill="url(#eyeG)"/><path id="eyeR" fill="url(#eyeG)"/>
-    <ellipse id="pupL" rx="3" ry="4" fill="#fff"/><ellipse id="pupR" rx="3" ry="4" fill="#fff"/>
-    <circle id="hiL" r="0"/><circle id="hiR" r="0"/>
-    <path id="mouth" fill="url(#mouthG)"/><path id="tongue" fill="#d77a9c"/><path id="fangs" fill="#c9ccd6"/>
-  </g>
-</svg>`;
-const el = (id) => stage.querySelector('#' + id);
-const gSil = el('gSil'), gFace = el('gFace'), armL = el('armL'), armR = el('armR'), footL = el('footL'), footR = el('footR'), tailG = el('tail');
-const eyeL = el('eyeL'), eyeR = el('eyeR'), pupL = el('pupL'), pupR = el('pupR'), hiL = el('hiL'), hiR = el('hiR'), mouthP = el('mouth'), tongueP = el('tongue'), fangsP = el('fangs');
-const tufts = [el('tf0'), el('tf1')], wisps = WISPS.map((_, i) => el('w' + i));
-const PIV = { tf: [[150, 140], [250, 140]], armL: [116, 220], armR: [284, 220] };
+/* =========================================================
+   Chispa 3D: modelado suave de alta resolución (Three.js, sin archivos)
+   ========================================================= */
+const cv3 = document.createElement('canvas'); stage.appendChild(cv3);
+const renderer = new THREE.WebGLRenderer({ canvas: cv3, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+const RES = mobile() ? 520 : 760;
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.setSize(RES, RES, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, .1, 50); camera.position.set(0, .15, 9);
+scene.add(new THREE.HemisphereLight('#ffffff', '#7d84a3', 1.15));
+const key = new THREE.DirectionalLight('#ffffff', 1.6); key.position.set(-2.5, 3.5, 4); scene.add(key);
+const rim = new THREE.DirectionalLight('#dfe6ff', 2.2); rim.position.set(1.5, 2, -4); scene.add(rim);
+const skin = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: .34, roughness: .55, metalness: 0 });
+const ghost = new THREE.Group(), rig = new THREE.Group(); ghost.add(rig); scene.add(ghost);
+const smooth = (pts, n = 72) => new THREE.SplineCurve(pts.map(([x, y]) => new THREE.Vector2(x, y))).getPoints(n);
+// cuerpo de pera
+const body = new THREE.Mesh(new THREE.LatheGeometry(smooth([[0, 1.3], [.52, 1.18], [.86, .95], [1.05, .55], [1.1, .1], [1.08, -.35], [.95, -.78], [.62, -1.05], [.3, -1.18], [.001, -1.22]]), 128), skin);
+body.scale.z = .86; rig.add(body);
+// orejas en punta, ligeramente curvas y aplanadas
+function earGeo() { const g = new THREE.LatheGeometry(smooth([[.36, 0], [.35, .18], [.3, .4], [.2, .6], [.1, .72], [.001, .76]], 48), 64); const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) - y * y * .12); } g.computeVertexNormals(); return g; }
+const ears = [-1, 1].map((s) => { const pv = new THREE.Group(); pv.position.set(s * .58, .9, 0); pv.rotation.z = -s * .3;
+  const m = new THREE.Mesh(earGeo(), skin); m.scale.set(s, 1, .5); pv.add(m); rig.add(pv); return pv; });
+// patitas
+const feet = [-1, 1].map((s) => { const m = new THREE.Mesh(new THREE.SphereGeometry(.3, 48, 32), skin); m.scale.set(1, .62, 1.05); m.position.set(s * .5, -1.2, .18); rig.add(m); return m; });
+// bracitos cortos y gruesos
+const arms = [-1, 1].map((s) => { const g = new THREE.Group(); g.position.set(s * .82, .12, .05);
+  const m = new THREE.Mesh(new THREE.CapsuleGeometry(.16, .38, 12, 32), skin); m.position.y = .3; g.add(m); g.rotation.z = -s * 1.0; rig.add(g); return g; });
+// llamitas flotantes
+function flameTex() { const c = document.createElement('canvas'); c.width = 128; c.height = 256; const x = c.getContext('2d');
+  const g = x.createRadialGradient(64, 190, 4, 64, 160, 120); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, 'rgba(240,240,255,.8)'); g.addColorStop(1, 'rgba(220,220,255,0)');
+  x.fillStyle = g; x.beginPath(); x.moveTo(64, 8); x.bezierCurveTo(96, 80, 124, 140, 116, 192); x.bezierCurveTo(108, 244, 20, 244, 12, 192); x.bezierCurveTo(4, 140, 32, 80, 64, 8); x.fill(); return new THREE.CanvasTexture(c); }
+const fTex = flameTex();
+const WISPS = [[-1.65, .9, .32], [1.6, .55, .36], [-1.5, -.6, .28]];
+const wisps = WISPS.map(([x, y, k]) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.set(k, k * 2, 1); sp.position.set(x, y, -.2); ghost.add(sp); return sp; });
+// cara: textura de alta resolución proyectada sobre el cuerpo (decal)
+const fCv = document.createElement('canvas'); fCv.width = fCv.height = 1024; const fx2 = fCv.getContext('2d');
+const fTexFace = new THREE.CanvasTexture(fCv); fTexFace.colorSpace = THREE.SRGBColorSpace; fTexFace.anisotropy = 8;
+body.updateMatrixWorld(true);
+const faceMesh = new THREE.Mesh(new DecalGeometry(body, new THREE.Vector3(0, 0, 1.2), new THREE.Euler(0, 0, 0), new THREE.Vector3(2.2, 2.2, 2.6)),
+  new THREE.MeshBasicMaterial({ map: fTexFace, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8, toneMapped: false, side: THREE.DoubleSide, depthTest: false }));
+faceMesh.renderOrder = 2;
+rig.add(faceMesh);
+const gFace = faceMesh;
 const sky = $('#sky'), sc = sky.getContext('2d');
 function drawSky() { sky.width = innerWidth; sky.height = innerHeight * 1.4; for (let i = 0; i < 260; i++) { sc.fillStyle = `rgba(255,255,255,${.1 + Math.random() * .45})`; sc.beginPath(); sc.arc(Math.random() * sky.width, Math.random() * sky.height, Math.random() * 1.1 + .2, 0, 7); sc.fill(); } }
 drawSky(); addEventListener('resize', drawSky);
@@ -116,29 +93,27 @@ let T = { ...CARAS.contento, wink: 0 }, faceTimer, talkUntil = 0, faceName = 'co
 function cara(n) { faceName = CARAS[n] ? n : 'contento'; T = { ...CARAS[faceName], wink: faceName === 'guino' ? 1 : 0 }; }
 function caraUn(n, ms = 2600) { cara(n); clearTimeout(faceTimer); faceTimer = setTimeout(() => cara('contento'), ms); }
 const EYE = { L: [158, 196], R: [242, 196] };
+let eyeCol = '#16161b';
 function drawFace() {
-  for (const [p, pu, hi, side, c] of [[eyeL, pupL, hiL, -1, EYE.L], [eyeR, pupR, hiR, 1, EYE.R]]) {
-    const open = Math.max(F.open * (1 - F.blink) * (side === 1 ? 1 - F.wink : 1), .04), mid = (F.in + F.out) / 2, up = mid + (F.up - mid) * open, lo = mid + (F.lo - mid) * open, sx = side * .62, s = .62;
-    p.setAttribute('d', `M-50 ${f1(F.in)} C-50 ${f1(up)} 50 ${f1(up)} 50 ${f1(F.out)} C50 ${f1(lo)} -50 ${f1(lo)} -50 ${f1(F.in)} Z`);
-    p.setAttribute('transform', `translate(${c[0]} ${c[1]}) scale(${sx} ${s})`); p.setAttribute('stroke', 'none');
-    const heart = faceName === 'amor', show = open > .3;
-    const px = c[0] + F.look * 9, py = c[1] + (mid + (lo - up) * .05) * s + F.lookY * 5;
-    pu.setAttribute('cx', f1(px)); pu.setAttribute('cy', f1(py)); pu.setAttribute('ry', f1((heart ? 9 : 4) * Math.min(1, open * 1.4))); pu.setAttribute('rx', heart ? 9 : 3);
-    pu.setAttribute('fill', heart ? '#ff5c9a' : '#ffffff'); pu.setAttribute('opacity', show ? 1 : 0);
-    hi.setAttribute('cx', f1(px + 4)); hi.setAttribute('cy', f1(py - 6)); hi.setAttribute('opacity', show ? .95 : 0);
+  const c = fx2, k = 1024 / 220; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 1024, 1024);
+  c.setTransform(k, 0, 0, k, -90 * k, -120 * k);
+  for (const [side, e] of [[-1, EYE.L], [1, EYE.R]]) {
+    const open = Math.max(F.open * (1 - F.blink) * (side === 1 ? 1 - F.wink : 1), .04), mid = (F.in + F.out) / 2, up = mid + (F.up - mid) * open, lo = mid + (F.lo - mid) * open, s = .62;
+    c.save(); c.translate(e[0], e[1]); c.scale(side * s, s);
+    c.fillStyle = eyeCol; c.fill(new Path2D(`M-50 ${f1(F.in)} C-50 ${f1(up)} 50 ${f1(up)} 50 ${f1(F.out)} C50 ${f1(lo)} -50 ${f1(lo)} -50 ${f1(F.in)} Z`)); c.restore();
+    if (open > .3) { const heart = faceName === 'amor', px = e[0] + F.look * 9, py = e[1] + mid * s + F.lookY * 5;
+      c.fillStyle = heart ? '#ff5c9a' : '#ffffff'; c.beginPath(); c.ellipse(px, py, heart ? 9 : 3, (heart ? 9 : 4) * Math.min(1, open * 1.4), 0, 0, 7); c.fill(); }
   }
-  const w = F.w, cy = F.cy, lo = F.mlo + F.talk * 20, top = F.mup - F.talk * 3, tr = `translate(200 252) scale(.72)`;
-  const md = `M${f1(-w)} ${f1(cy)} Q0 ${f1(lo * 2 - cy)} ${f1(w)} ${f1(cy)} Q0 ${f1(top * 2 - cy)} ${f1(-w)} ${f1(cy)} Z`;
-  mouthP.setAttribute('d', md); mouthP.setAttribute('transform', tr); mouthP.setAttribute('stroke', 'none'); mouthP.setAttribute('stroke-linejoin', 'round');
+  const w = F.w, cy = F.cy, lo = F.mlo + F.talk * 20, top = F.mup - F.talk * 3;
+  c.save(); c.translate(200, 252); c.scale(.72, .72);
+  const mp = new Path2D(`M${f1(-w)} ${f1(cy)} Q0 ${f1(lo * 2 - cy)} ${f1(w)} ${f1(cy)} Q0 ${f1(top * 2 - cy)} ${f1(-w)} ${f1(cy)} Z`);
+  const g = c.createRadialGradient(0, cy + 10, 4, 0, cy + 20, w); g.addColorStop(0, '#3a3b44'); g.addColorStop(.6, '#1e1f26'); g.addColorStop(1, '#111116');
+  c.fillStyle = g; c.fill(mp); c.save(); c.clip(mp);
   const tg = Math.min(1.4, F.tongue), ty = lo * .82;
-  tongueP.setAttribute('d', tg > .05 && lo > 20 ? `M${f1(-w * .45 * tg)} ${f1(ty)} Q0 ${f1(ty - 26 * tg)} ${f1(w * .45 * tg)} ${f1(ty)} Q${f1(w * .3)} ${f1(lo * 1.02)} 0 ${f1(lo * 1.02)} Q${f1(-w * .3)} ${f1(lo * 1.02)} ${f1(-w * .45 * tg)} ${f1(ty)}Z` : '');
-  tongueP.setAttribute('transform', tr);
-  let fd = '';
-  if (F.teeth > .05 && w > 34) {
-    for (const sx of [-1, 1]) { const x = sx * w * .5, tt = x / w, y = cy + (top * 2 - 2 * cy) * (1 - tt * tt) * .5; fd += `M${f1(x - 10)} ${f1(y - 2)} L${f1(x + sx)} ${f1(y + 22 * F.teeth)} L${f1(x + 10)} ${f1(y - 2)}Z`; }
-    for (const sx of [-1, 1]) { const x = sx * w * .28, tt = x / w, y = cy + (lo * 2 - 2 * cy) * (1 - tt * tt) * .5; if (false) fd += `M${f1(x - 7)} ${f1(y + 2)} L${f1(x)} ${f1(y - 12 * F.teeth)} L${f1(x + 7)} ${f1(y + 2)}Z`; }
-  }
-  fangsP.setAttribute('d', fd); fangsP.setAttribute('transform', tr);
+  if (tg > .05 && lo > 20) { c.fillStyle = '#d77a9c'; c.beginPath(); c.ellipse(0, ty + 8, w * .42 * tg, 22 * tg, 0, 0, 7); c.fill(); }
+  if (F.teeth > .05 && w > 34) { c.fillStyle = '#c9ccd6'; for (const sx of [-1, 1]) { const x = sx * w * .5, tt = x / w, y = cy + (top * 2 - 2 * cy) * (1 - tt * tt) * .5; c.beginPath(); c.moveTo(x - 10, y - 2); c.lineTo(x + sx, y + 22 * F.teeth); c.lineTo(x + 10, y - 2); c.fill(); } }
+  c.restore(); c.restore();
+  fTexFace.needsUpdate = true;
 }
 const FACE_KEYS = ['in', 'out', 'up', 'lo', 'open', 'w', 'cy', 'mup', 'mlo', 'teeth', 'tongue', 'wink'];
 function tweenFace(dt, now) {
@@ -245,14 +220,13 @@ function perseguir(ms = 4000) { Object.assign(OV, { follow: true, hide: false, u
 function esconderse(ms = 4000) { Object.assign(OV, { hide: true, follow: false, x: Math.random() > .5 ? 102 : -2, y: 60 + Math.random() * 25, until: performance.now() + clamp(ms, 1500, 10000) }); }
 let sizeMul = 1, sizeUntil = 0;
 function tamano(v, ms = 5000) { sizeMul = clamp(v, .4, 1.8); sizeUntil = performance.now() + clamp(ms, 800, 12000); }
-const setStops = (id, cols) => stage.querySelectorAll(`#${id} stop`).forEach((st, i) => cols[i] && st.setAttribute('stop-color', cols[i]));
 const FUR0 = ['#ffffff', '#ffffff', '#e6eaf3'], EYE0 = ['#22222a', '#16161b', '#0d0d11'];
 const hexOk = (h) => /^#[0-9a-f]{6}$/i.test(String(h));
 const shade = (h, k) => '#' + hex2(h).map((c) => Math.round(Math.min(255, c * k)).toString(16).padStart(2, '0')).join('');
 let colTimer;
-function colorPelo(h, ms = 6000) { if (!hexOk(h)) return; setStops('furG', [shade(h, 1.5), h, shade(h, .5)]); setStops('furG2', [shade(h, 1.3), shade(h, .5)]); clearTimeout(colTimer); colTimer = setTimeout(() => { setStops('furG', FUR0); setStops('furG2', ['#ffffff', '#e9edf5']); }, clamp(ms, 1500, 15000)); }
+function colorPelo(h, ms = 6000) { if (!hexOk(h)) return; skin.color.set(h); skin.emissive.set(h); clearTimeout(colTimer); colTimer = setTimeout(() => { skin.color.set('#ffffff'); skin.emissive.set('#ffffff'); }, clamp(ms, 1500, 15000)); }
 let eyeTimer;
-function colorOjos(h, ms = 6000) { if (!hexOk(h)) return; setStops('eyeG', [shade(h, 1.5), h, shade(h, .7)]); clearTimeout(eyeTimer); eyeTimer = setTimeout(() => setStops('eyeG', EYE0), clamp(ms, 1500, 15000)); }
+function colorOjos(h, ms = 6000) { if (!hexOk(h)) return; eyeCol = h; clearTimeout(eyeTimer); eyeTimer = setTimeout(() => { eyeCol = '#16161b'; }, clamp(ms, 1500, 15000)); }
 function pantalla(k) {
   const b = document.body;
   if (k === 'temblar') { b.classList.remove('fx-shake'); void b.offsetWidth; b.classList.add('fx-shake'); setTimeout(() => b.classList.remove('fx-shake'), 700); }
@@ -272,7 +246,7 @@ function resaltar(id) {
 }
 function clonar(n = 3) {
   n = clamp(n, 1, 6);
-  for (let i = 0; i < n; i++) { const c = stage.cloneNode(true); c.removeAttribute('id'); c.classList.add('fx-clone'); c.setAttribute('aria-hidden', 'true'); document.body.appendChild(c);
+  for (let i = 0; i < n; i++) { const c = stage.cloneNode(false); c.removeAttribute('id'); c.classList.add('ghost', 'fx-clone'); const im = new Image(); im.src = cv3.toDataURL(); im.style.cssText = 'width:100%;height:100%'; c.appendChild(im); c.setAttribute('aria-hidden', 'true'); document.body.appendChild(c);
     const dx = (Math.random() - .5) * innerWidth * .6, dy = (Math.random() - .5) * innerHeight * .4, base = stage.style.transform;
     c.animate([{ transform: base, opacity: .9 }, { transform: `${base} translate(${dx}px, ${dy}px) scale(.6)`, opacity: 0 }], { duration: 1600 + i * 200, easing: 'cubic-bezier(.2,.8,.2,1)' }).finished.then(() => c.remove()); }
 }
@@ -470,25 +444,20 @@ function frame(now) {
   const cx = G.x + A.x * G.u, cy = G.y - A.y * G.u;
   const turn = Math.cos(A.ry + ptr.x * .25), rot = (A.rz + A.rx) * D + ptr.x * 3;
   stage.style.width = stage.style.height = `${G.size}px`;
-  stage.style.transform = `translate(${cx - G.size / 2}px, ${cy - G.size / 2}px) rotate(${rot}deg) scale(${A.s * A.sx * turn}, ${A.s * A.sy})`;
+  stage.style.transform = `translate(${cx - G.size / 2}px, ${cy - G.size / 2}px) rotate(${(A.rz * D + ptr.x * 2).toFixed(2)}deg) scale(${A.s * A.sx}, ${A.s * A.sy})`;
   stage.style.opacity = A.op;
-  gFace.style.opacity = turn < .15 ? 0 : 1;
-  // manos flotando separadas del cuerpo, cada una con su propio vaivén
+  rig.rotation.set(A.rx + ptr.y * .14, A.ry + ptr.x * .45, 0);
+  faceMesh.visible = Math.cos(rig.rotation.y) * Math.cos(rig.rotation.x) > .2;
   const hl = A.armL, hr = A.armR;
-  armL.setAttribute('transform', `translate(${f1(-10 - hl * 10 + S(t * 1.7) * 3)} ${f1(-hl * 34 + S(t * 2.1 + .6) * 7)}) rotate(${f1(-hl * 14 + S(t * 1.3) * 5)} ${PIV.armL[0]} ${PIV.armL[1]})`);
-  armR.setAttribute('transform', `translate(${f1(10 + hr * 10 + S(t * 1.6 + 2) * 3)} ${f1(-hr * 34 + S(t * 2.3 + 1.9) * 7)}) rotate(${f1(hr * 14 + S(t * 1.4 + 1) * 5)} ${PIV.armR[0]} ${PIV.armR[1]})`);
-  const kick = S(t * 2.6) * 3, air = Math.min(1, Math.max(0, A.y - .15) * 2);
-  footL.setAttribute('transform', `translate(${f1(-air * 6)} ${f1(kick - air * 10)})`);
-  footR.setAttribute('transform', `translate(${f1(air * 6)} ${f1(-kick - air * 10)})`);
-  // movimiento secundario tipo muelle en orejas
+  arms[0].rotation.z = (1.0 - hl * .5) + S(t * 1.6) * .05; arms[1].rotation.z = -(1.0 - hr * .5) - S(t * 1.5 + 1) * .05;
+  const kick = S(t * 2.6) * .025, air = Math.min(1, Math.max(0, A.y - .15) * 2);
+  feet[0].position.set(-.5 - air * .06, -1.2 + kick + air * .08, .18); feet[1].position.set(.5 + air * .06, -1.2 - kick + air * .08, .18);
   const vx = (cx - prevX) / Math.max(dt, .001), vy = (cy - prevY) / Math.max(dt, .001); prevX = cx; prevY = cy;
   sprX += (Math.max(-1, Math.min(1, -vx / 900)) - sprX) * .1; sprY += (Math.max(-1, Math.min(1, vy / 900)) - sprY) * .1;
-  tufts.forEach((tf, i) => { const [px, py] = PIV.tf[i]; tf.setAttribute('transform', `rotate(${f1((sprX * 18 + S(t * 2.3 + i * 1.7) * 3 + (i ? 1 : -1) * Math.max(0, -sprY) * 12))} ${px} ${py}) translate(${px} ${py}) scale(1 ${f1(1 + sprY * .25 + S(t * 4 + i * 2) * .05)}) translate(${-px} ${-py})`); });
+  ears.forEach((e, i) => { const s2 = i ? 1 : -1; e.rotation.z = -s2 * .3 + sprX * .3 + S(t * 2.3 + i * 1.7) * .04 + s2 * Math.max(0, -sprY) * .2; e.rotation.x = sprY * .2; });
   tint = tint.map((c, i) => c + ((tintOverride && now < tintOverrideUntil ? tintOverride : tintTarget)[i] - c) * .06);
-    const wc = tint.map((c) => Math.round(255 - (255 - c) * .6));
-  gSil.style.setProperty('--wisp', `rgb(${wc.join(',')})`);
-  wisps.forEach((w, i) => { const [x, y] = WISPS[i]; w.setAttribute('transform', `translate(${f1(x + S(t * .9 + i) * 6)} ${f1(y + S(t * 1.3 + i * 2) * 8)}) rotate(${f1(S(t * 1.7 + i) * 8)}) scale(${f1(1 + S(t * 6 + i * 3) * .05)} ${f1(1 + S(t * 5 + i) * .08)})`); w.style.opacity = .75 + S(t * 3 + i * 1.3) * .25; });
-  tailG.setAttribute('transform', `rotate(${f1(S(t * 1.6) * 5 + sprX * 14)} 160 330)`);
+  wisps.forEach((w, i) => { const [x, y, k] = WISPS[i]; w.position.set(x + S(t * .9 + i) * .08, y + S(t * 1.3 + i * 2) * .12, -.2); const f = 1 + S(t * 7 + i * 3) * .06; w.scale.set(k * f, k * 2 * f, 1);
+    w.material.color.setRGB(...tint.map((c) => (255 - (255 - c) * .6) / 255)); w.material.opacity = (.75 + S(t * 3 + i * 1.3) * .25) * A.op; });
   F.look += (ptr.x - F.look) * .1; F.lookY += (ptr.y - F.lookY) * .1;
   const bp = (now - blinkAt) / 150; F.blink = bp > 0 && bp < 1 ? Math.sin(bp * Math.PI) : 0;
   if (bp >= 1) blinkAt = now + 2200 + Math.random() * 3200;
@@ -499,6 +468,7 @@ function frame(now) {
     bubble.style.left = `${Math.min(Math.max(o.x, 12), innerWidth - w - 12)}px`; bubble.style.top = `${Math.max(o.y - bubble.offsetHeight, 70)}px`;
   }
   sky.style.transform = `translate(${ptr.x * -8}px, ${-scrollY * .05 + ptr.y * -6}px)`;
+  renderer.render(scene, camera);
   prog.style.transform = `scaleX(${scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight)})`;
 }
 requestAnimationFrame(frame);
