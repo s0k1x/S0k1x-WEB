@@ -117,3 +117,16 @@ h2.big { font-size: clamp(40px, 6vw, 84px); line-height: 1; }
 .chat { transition: border-color .3s, box-shadow .3s; }
 .chat:focus-within { border-color: #3a3a3a; box-shadow: 0 0 0 4px rgba(76, 141, 255, .12); }
 @media (prefers-reduced-motion: reduce) { .ch__text > * { opacity: 1; translate: none; } }
+
+/* poderes del fantasma */
+.fx-shake main, .fx-shake .nav { animation: fxShake .6s; }
+@keyframes fxShake { 20% { transform: translate(-8px, 4px); } 40% { transform: translate(7px, -5px); } 60% { transform: translate(-5px, 3px); } 80% { transform: translate(4px, -2px); } }
+.fx-flash { position: fixed; inset: 0; z-index: 20; background: #e9dcff; pointer-events: none; animation: fxFlash .55s forwards; }
+@keyframes fxFlash { from { opacity: .7; } to { opacity: 0; } }
+body::after { content: ""; position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 1; transition: opacity .6s; }
+body.fx-dim::after { opacity: .65; }
+.fx-invert main { filter: invert(1) hue-rotate(180deg); transition: filter .2s; }
+.fx-bolt { position: fixed; inset: 0; z-index: 19; pointer-events: none; }
+.fx-clone { pointer-events: none; z-index: 1; }
+.fx-hl { border-radius: 14px; animation: fxHl 2.4s; }
+@keyframes fxHl { 0%, 100% { box-shadow: 0 0 0 0 rgba(167, 123, 255, 0); } 30%, 70% { box-shadow: 0 0 0 10px rgba(167, 123, 255, .18), 0 0 40px rgba(167, 123, 255, .35); } }

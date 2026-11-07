@@ -23,100 +23,130 @@ const HUES = ['#ff9a6b', '#ff6b7a', '#6bffb0', '#6bb6ff', '#ffd36b', '#6bfff0', 
    ========================================================= */
 const NS = 'http://www.w3.org/2000/svg';
 const stage = $('#ghost');
+const f1 = (n) => (+n).toFixed(1);
+// ---------- geometría procedural del pelaje ----------
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const ell = (cx, cy, rx, ry, n = 72, a0 = 0) => Array.from({ length: n }, (_, i) => { const a = a0 + i / n * Math.PI * 2; return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]; });
+const bez = (p0, p1, p2, p3, t) => { const u = 1 - t; return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]; };
+function spine(segs, n = 40) { const pts = []; segs.forEach((s, k) => { for (let i = k ? 1 : 0; i <= n; i++) pts.push(bez(s[0], s[1], s[2], s[3], i / n)); }); return pts; }
+function tubePts(c, w0, w1) { // contorno de una forma alargada a partir de su eje
+  const L = [], R = [];
+  c.forEach((p, i) => { const a = c[Math.max(0, i - 1)], b = c[Math.min(c.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, t = i / (c.length - 1), w = (w0 + (w1 - w0) * Math.pow(t, .85)) * (t > .92 ? (1 - t) / .08 * .8 + .2 : 1);
+    L.push([p[0] - dy / l * w, p[1] + dx / l * w]); R.push([p[0] + dy / l * w, p[1] - dx / l * w]); });
+  return [...L, ...R.reverse()];
+}
+function fur(pts, amp = 7, top = 0) { // mechones curvos hacia fuera
+  const n = pts.length; let cx = 0, cy = 0; pts.forEach((p) => { cx += p[0]; cy += p[1]; }); cx /= n; cy /= n;
+  let d = `M${f1(pts[0][0])} ${f1(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    let nx = -(b[1] - a[1]), ny = b[0] - a[0]; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+    if ((mx - cx) * nx + (my - cy) * ny < 0) { nx = -nx; ny = -ny; }
+    const k = amp * (.55 + rnd() * .8) * (1 + Math.max(0, -ny) * top), sw = (rnd() - .5) * amp * .9;
+    d += ` Q${f1(mx + nx * k + ny * sw)} ${f1(my + ny * k - nx * sw)} ${f1(b[0])} ${f1(b[1])}`;
+  }
+  return d + 'Z';
+}
+function claws(x, y, ang, s = 1) { let d = ''; for (let k = -1; k <= 1; k++) { const a = ang + k * .38, bx = x + Math.cos(a) * 14 * s, by = y + Math.sin(a) * 14 * s, tx = x + Math.cos(a) * 30 * s, ty = y + Math.sin(a) * 30 * s, px = -Math.sin(a) * 5 * s, py = Math.cos(a) * 5 * s;
+  d += `M${f1(bx - px)} ${f1(by - py)} Q${f1(tx - px * .4)} ${f1(ty - py * .4)} ${f1(tx + px * .6)} ${f1(ty + py * .6)} Q${f1(bx + px * 1.2)} ${f1(by + py * 1.2)} ${f1(bx + px)} ${f1(by + py)}Z`; } return d; }
+function flameD(h = 1) { return `M0 0 C-22 -18 -26 -52 -8 -78 C-14 -58 -4 -50 4 -60 C2 -86 18 -104 10 -${f1(140 * h)} C34 -110 44 -70 30 -40 C42 -48 40 -64 36 -72 C56 -46 44 -10 18 2 C10 6 4 4 0 0Z`; }
+const WISPS = [[52, 140, .45, -.2], [350, 170, .5, .15], [60, 300, .4, .1]];
+const BODY = 'M200 100 C260 100 304 142 310 204 C316 266 300 312 262 336 C240 350 220 354 200 354 C180 354 160 350 138 336 C100 312 84 266 90 204 C96 142 140 100 200 100 Z';
+const EAR = 'M126 162 C120 120 112 80 102 34 C136 68 166 100 184 130 Z';
+const ARM = 'M104 238 C80 228 62 208 58 188 C56 174 70 168 82 176 C96 186 108 202 122 214 Z';
 stage.innerHTML = `<svg viewBox="0 0 400 420" aria-hidden="true">
   <defs>
-    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="b3"/><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b2"/><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b1"/>
-      <feMerge><feMergeNode in="b3"/><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <radialGradient id="furG" cx=".5" cy=".42" r=".62"><stop offset="0" stop-color="#ffffff"/><stop offset=".75" stop-color="#ffffff"/><stop offset="1" stop-color="#e6eaf3"/></radialGradient>
+    <radialGradient id="furG2" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9edf5"/></radialGradient>
+    <linearGradient id="wispG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="var(--wisp, #ffffff)" stop-opacity=".85"/><stop offset="1" stop-color="var(--wisp, #ffffff)" stop-opacity="0"/></linearGradient>
+    <radialGradient id="eyeG" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#22222a"/><stop offset=".7" stop-color="#16161b"/><stop offset="1" stop-color="#0d0d11"/></radialGradient>
+    <radialGradient id="mouthG" cx=".5" cy=".35" r=".7"><stop offset="0" stop-color="#3a3b44"/><stop offset=".6" stop-color="#1e1f26"/><stop offset="1" stop-color="#111116"/></radialGradient>
+    <filter id="aura" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="22" result="far"/><feFlood flood-color="#fff" flood-opacity=".5"/><feComposite in2="far" operator="in" result="fg"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="near"/><feFlood flood-color="#fff" flood-opacity=".85"/><feComposite in2="near" operator="in" result="ng"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.1" result="soft"/><feMerge><feMergeNode in="fg"/><feMergeNode in="ng"/><feMergeNode in="soft"/></feMerge>
     </filter>
-    <filter id="soft"><feGaussianBlur stdDeviation="1.1"/></filter>
-    <linearGradient id="mouthG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0b0b"/><stop offset="1" stop-color="#3b3b3b"/></linearGradient>
+    <filter id="wglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>
+    <filter id="far" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="38"/></filter>
   </defs>
-  <g id="gBody">
-    <g id="gSil" filter="url(#glow)">
-      <g id="tf0" class="tf"><path d="M126 162 C120 120 112 80 102 34 C136 68 166 100 184 130 Z"/></g>
-      <g id="tf1" class="tf"><path d="M274 162 C280 120 288 80 298 34 C264 68 234 100 216 130 Z"/></g>
-      <g id="footL"><ellipse cx="150" cy="352" rx="30" ry="19"/></g>
-      <g id="footR"><ellipse cx="250" cy="352" rx="30" ry="19"/></g>
-      <g id="armL"><path d="M100 214 C98 236 72 246 54 236 C38 228 32 206 42 188 L40 156 L52 182 L58 140 L66 176 L80 148 L78 180 C92 186 102 198 100 214 Z"/></g>
-      <g id="armR"><path d="M300 214 C302 236 328 246 346 236 C362 228 368 206 358 188 L360 156 L348 182 L342 140 L334 176 L320 148 L322 180 C308 186 298 198 300 214 Z"/></g>
-      <path id="body" transform="translate(200 230) scale(.95) translate(-200 -230)" d="M200 100 C260 100 304 142 310 204 C316 266 300 312 262 336 C240 350 220 354 200 354 C180 354 160 350 138 336 C100 312 84 266 90 204 C96 142 140 100 200 100 Z"/>
-    </g>
-    <g id="gFace" filter="url(#soft)">
-      <path id="eyeL"/><path id="eyeR"/><ellipse id="pupL" rx="2.6" ry="3.6" fill="#fff"/><ellipse id="pupR" rx="2.6" ry="3.6" fill="#fff"/><path id="mouth" fill="url(#mouthG)"/><path id="fangs" fill="#cfcfcf"/>
-    </g>
+  <ellipse id="halo" cx="200" cy="230" rx="140" ry="130" fill="#fff" opacity=".18" filter="url(#far)"/>
+  <g id="gSil">${WISPS.map(([x, y, s, r], i) => `<g class="wisp" id="w${i}" transform="translate(${x} ${y})"><g filter="url(#wglow)"><path d="${flameD()}" fill="url(#wispG)" transform="scale(${s}) rotate(${r * 57})"/></g></g>`).join('')}</g>
+  <g filter="url(#aura)">
+    <g id="tail"></g>
+    <g id="tf0"><path d="${EAR}" fill="url(#furG2)"/></g>
+    <g id="tf1"><path d="${EAR}" transform="translate(400 0) scale(-1 1)" fill="url(#furG2)"/></g>
+    <g id="footL"><ellipse cx="152" cy="352" rx="30" ry="19" fill="url(#furG2)"/></g>
+    <g id="footR"><ellipse cx="248" cy="352" rx="30" ry="19" fill="url(#furG2)"/></g>
+    <path d="${BODY}" transform="translate(200 230) scale(.95) translate(-200 -230)" fill="url(#furG)"/>
+    <g id="armL"><path d="${ARM}" fill="url(#furG2)"/></g>
+    <g id="armR"><path d="${ARM}" transform="translate(400 0) scale(-1 1)" fill="url(#furG2)"/></g>
+  </g>
+  <g id="gFace" filter="url(#soft)">
+    <path id="eyeL" fill="url(#eyeG)"/><path id="eyeR" fill="url(#eyeG)"/>
+    <ellipse id="pupL" rx="3" ry="4" fill="#fff"/><ellipse id="pupR" rx="3" ry="4" fill="#fff"/>
+    <circle id="hiL" r="0"/><circle id="hiR" r="0"/>
+    <path id="mouth" fill="url(#mouthG)"/><path id="tongue" fill="#d77a9c"/><path id="fangs" fill="#c9ccd6"/>
   </g>
 </svg>`;
 const el = (id) => stage.querySelector('#' + id);
-const gBody = el('gBody'), gSil = el('gSil'), gFace = el('gFace'), armL = el('armL'), armR = el('armR');
-const eyeL = el('eyeL'), eyeR = el('eyeR'), mouthP = el('mouth'), fangsP = el('fangs');
-const tufts = [0, 1].map((i) => el('tf' + i)), footL = el('footL'), footR = el('footR'), pupL = el('pupL'), pupR = el('pupR');
-const PIV = { tf: [[150, 136], [250, 136]], armL: [70, 210], armR: [330, 210] };
-
-// fondo de estrellas (se dibuja una vez)
+const gSil = el('gSil'), gFace = el('gFace'), armL = el('armL'), armR = el('armR'), footL = el('footL'), footR = el('footR'), tailG = el('tail');
+const eyeL = el('eyeL'), eyeR = el('eyeR'), pupL = el('pupL'), pupR = el('pupR'), hiL = el('hiL'), hiR = el('hiR'), mouthP = el('mouth'), tongueP = el('tongue'), fangsP = el('fangs');
+const tufts = [el('tf0'), el('tf1')], wisps = WISPS.map((_, i) => el('w' + i));
+const PIV = { tf: [[150, 140], [250, 140]], armL: [116, 220], armR: [284, 220] };
 const sky = $('#sky'), sc = sky.getContext('2d');
 function drawSky() { sky.width = innerWidth; sky.height = innerHeight * 1.4; for (let i = 0; i < 260; i++) { sc.fillStyle = `rgba(255,255,255,${.1 + Math.random() * .45})`; sc.beginPath(); sc.arc(Math.random() * sky.width, Math.random() * sky.height, Math.random() * 1.1 + .2, 0, 7); sc.fill(); } }
 drawSky(); addEventListener('resize', drawSky);
 
-/* ---------- cara paramétrica: ojos y boca se transforman de forma continua ---------- */
-const P = (o) => ({ in: 28, out: -36, up: -20, lo: 24, open: 1, w: 146, cy: -30, mup: 18, mlo: 104, teeth: 1, ...o });
+/* ---------- cara paramétrica ---------- */
+// ojo: in/out esquinas, up/lo párpados, open apertura · boca: w, cy, mup, mlo, teeth, tongue
+const P = (o) => ({ in: 16, out: -16, up: -22, lo: 30, open: 1, w: 96, cy: -20, mup: 10, mlo: 82, teeth: 1, tongue: 0, ...o });
 const CARAS = {
-  malvado: P({}),
-  chulo: P({ in: 6, out: -18, up: -20, lo: 22, w: 104, cy: -10, mup: 14, mlo: 60 }),
-  feliz: P({ in: 12, out: 12, up: -40, lo: -6, w: 120, cy: -26, mup: 18, mlo: 96 }),
-  risa: P({ in: 14, out: 14, up: -42, lo: -10, w: 132, cy: -34, mup: 12, mlo: 128, teeth: .7 }),
-  sorpresa: P({ in: 0, out: 0, up: -48, lo: 48, w: 34, cy: 10, mup: -24, mlo: 46, teeth: 0 }),
-  enfado: P({ in: 30, out: -34, up: -2, lo: 30, w: 96, cy: 6, mup: 4, mlo: 40 }),
-  triste: P({ in: -26, out: 14, up: -26, lo: 30, w: 70, cy: 36, mup: -8, mlo: 6, teeth: 0 }),
-  dormido: P({ in: 6, out: 6, up: 4, lo: 6, open: 0, w: 60, cy: 12, mup: 10, mlo: 16, teeth: 0 }),
-  pensando: P({ in: 4, out: -14, up: -28, lo: 24, w: 66, cy: 8, mup: 2, mlo: 22, teeth: 0 }),
-  asustado: P({ in: -8, out: -8, up: -50, lo: 44, w: 92, cy: 14, mup: -6, mlo: 34, teeth: 1 }),
-  aburrido: P({ in: 0, out: 0, up: -2, lo: 30, w: 60, cy: 12, mup: 10, mlo: 14, teeth: 0 }),
-  lengua: P({ in: 12, out: 12, up: -40, lo: -6, w: 110, cy: -18, mup: 16, mlo: 80, teeth: .4 }),
-  guino: P({}), amor: P({}), mareado: P({}), estrellas: P({}), muerto: P({}),
-  neutro: P({ in: 0, out: 0, up: -40, lo: 40, w: 60, cy: 10, mup: 8, mlo: 14, teeth: 0 }),
+  contento: P({}), feliz: P({ in: 8, out: 8, up: -40, lo: -4, w: 80, mlo: 80 }), risa: P({ in: 10, out: 10, up: -42, lo: -10, w: 88, cy: -16, mlo: 100 }),
+  malvado: P({ in: 16, out: -18, up: -16, lo: 34, w: 92, cy: -22, mup: 10, mlo: 70, tongue: 0 }), chulo: P({ in: 6, out: -10, up: -22, lo: 30, w: 66, cy: -2, mup: 6, mlo: 34, tongue: 0 }),
+  sorpresa: P({ up: -54, lo: 52, w: 26, cy: 8, mup: -20, mlo: 44, teeth: 0, tongue: 0 }), enfado: P({ in: 26, out: -22, up: -6, lo: 34, w: 64, cy: 10, mup: 4, mlo: 30, tongue: 0 }),
+  triste: P({ in: -18, out: 14, up: -30, lo: 38, w: 48, cy: 26, mup: -4, mlo: 6, teeth: 0, tongue: 0 }), dormido: P({ in: 6, out: 6, up: 4, lo: 6, open: 0, w: 40, cy: 8, mup: 6, mlo: 14, teeth: 0, tongue: 0 }),
+  pensando: P({ up: -34, lo: 30, w: 40, cy: 6, mup: 2, mlo: 16, teeth: 0, tongue: 0 }), asustado: P({ up: -56, lo: 50, w: 60, cy: 10, mup: -4, mlo: 28, tongue: 0 }),
+  aburrido: P({ up: -4, lo: 40, w: 40, cy: 10, mup: 8, mlo: 10, teeth: 0, tongue: 0 }), lengua: P({ in: 8, out: 8, up: -40, lo: -4, w: 70, mlo: 72, tongue: 1.6 }),
+  guino: P({ w: 70, cy: -6, mlo: 50 }), amor: P({}), mareado: P({ w: 50, mlo: 24, teeth: 0 }), estrellas: P({ w: 84, mlo: 90 }), muerto: P({ open: 0, w: 44, cy: 8, mup: 6, mlo: 12, teeth: 0, tongue: 0 }),
+  neutro: P({ up: -40, lo: 36, w: 40, cy: 8, mup: 6, mlo: 12, teeth: 0, tongue: 0 }),
 };
-const GLYPHS = { amor: 'M0 34 C-66 -6 -28 -50 0 -16 C28 -50 66 -6 0 34 Z', muerto: 'M-30 -22 L-22 -30 L0 -8 L22 -30 L30 -22 L8 0 L30 22 L22 30 L0 8 L-22 30 L-30 22 L-8 0 Z',
-  estrellas: (() => { let d = ''; for (let i = 0; i < 10; i++) { const r = i % 2 ? 18 : 44, a = -Math.PI / 2 + i * Math.PI / 5; d += `${i ? 'L' : 'M'}${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`; } return d + 'Z'; })() };
-const F = { ...CARAS.malvado, blink: 0, wink: 0, look: 0, lookY: 0, talk: 0, glyph: '' };
-let T = { ...CARAS.malvado, wink: 0 }, faceTimer, talkUntil = 0;
-function cara(n) { const k = CARAS[n] ? n : 'malvado'; T = { ...CARAS[k], wink: k === 'guino' ? 1 : 0 }; F.glyph = k === 'mareado' ? 'spiral' : GLYPHS[k] || ''; }
-function caraUn(n, ms = 2600) { cara(n); clearTimeout(faceTimer); faceTimer = setTimeout(() => cara('malvado'), ms); }
-const f1 = (n) => n.toFixed(1);
-function eyePath(side, now) {
-  if (F.glyph === 'spiral') { let d = ''; for (let a = 0; a < 16; a += .25) { const r = a * 2.6, b = a + now / 260 * side; d += `${a ? 'L' : 'M'}${f1(Math.cos(b) * r)} ${f1(Math.sin(b) * r)}`; } return d; }
-  if (F.glyph) return F.glyph;
-  const open = Math.max(F.open * (1 - F.blink) * (side === 1 ? 1 - F.wink : 1), .05);
-  const mid = (F.in + F.out) / 2, up = mid + (F.up - mid) * open, lo = mid + (F.lo - mid) * open;
-  return `M-50 ${f1(F.in)} Q0 ${f1(up * 1.25 - mid * .25)} 50 ${f1(F.out)} Q0 ${f1(lo * 1.25 - mid * .25)} -50 ${f1(F.in)} Z`;
-}
-function drawFace(now) {
-  for (const [p, side] of [[eyeL, -1], [eyeR, 1]]) {
-    p.setAttribute('d', eyePath(side, now));
-    p.setAttribute('transform', `translate(${f1(200 + side * 46 + F.look * 5)} ${f1(198 + F.lookY * 3)}) scale(${side * .5} .5)`);
-    p.setAttribute('fill', F.glyph === 'spiral' ? 'none' : '#121212'); p.setAttribute('stroke', '#121212'); p.setAttribute('stroke-width', F.glyph === 'spiral' ? 12 : 8); p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
+const F = { ...CARAS.contento, blink: 0, wink: 0, look: 0, lookY: 0, talk: 0 };
+let T = { ...CARAS.contento, wink: 0 }, faceTimer, talkUntil = 0, faceName = 'contento';
+function cara(n) { faceName = CARAS[n] ? n : 'contento'; T = { ...CARAS[faceName], wink: faceName === 'guino' ? 1 : 0 }; }
+function caraUn(n, ms = 2600) { cara(n); clearTimeout(faceTimer); faceTimer = setTimeout(() => cara('contento'), ms); }
+const EYE = { L: [158, 196], R: [242, 196] };
+function drawFace() {
+  for (const [p, pu, hi, side, c] of [[eyeL, pupL, hiL, -1, EYE.L], [eyeR, pupR, hiR, 1, EYE.R]]) {
+    const open = Math.max(F.open * (1 - F.blink) * (side === 1 ? 1 - F.wink : 1), .04), mid = (F.in + F.out) / 2, up = mid + (F.up - mid) * open, lo = mid + (F.lo - mid) * open, sx = side * .62, s = .62;
+    p.setAttribute('d', `M-50 ${f1(F.in)} C-50 ${f1(up)} 50 ${f1(up)} 50 ${f1(F.out)} C50 ${f1(lo)} -50 ${f1(lo)} -50 ${f1(F.in)} Z`);
+    p.setAttribute('transform', `translate(${c[0]} ${c[1]}) scale(${sx} ${s})`); p.setAttribute('stroke', 'none');
+    const heart = faceName === 'amor', show = open > .3;
+    const px = c[0] + F.look * 9, py = c[1] + (mid + (lo - up) * .05) * s + F.lookY * 5;
+    pu.setAttribute('cx', f1(px)); pu.setAttribute('cy', f1(py)); pu.setAttribute('ry', f1((heart ? 9 : 4) * Math.min(1, open * 1.4))); pu.setAttribute('rx', heart ? 9 : 3);
+    pu.setAttribute('fill', heart ? '#ff5c9a' : '#ffffff'); pu.setAttribute('opacity', show ? 1 : 0);
+    hi.setAttribute('cx', f1(px + 4)); hi.setAttribute('cy', f1(py - 6)); hi.setAttribute('opacity', show ? .95 : 0);
   }
-  const openE = F.open * (1 - F.blink);
-  for (const [p, side] of [[pupL, -1], [pupR, 1]]) {
-    const mid = (F.in + F.out) / 2;
-    p.setAttribute('cx', f1(200 + side * 46 + F.look * 9)); p.setAttribute('cy', f1(198 + mid * .5 + F.lookY * 4));
-    p.setAttribute('opacity', F.glyph || openE * (side === 1 ? 1 - F.wink : 1) < .35 ? 0 : 1);
-  }
-  const w = F.w, cy = F.cy, lo = F.mlo + F.talk * 26, top = F.mup - F.talk * 4;
-  const tr = `translate(${f1(200 + F.look * 3)} ${f1(258 + F.lookY * 2)}) scale(.5)`;
-  mouthP.setAttribute('d', `M${f1(-w)} ${f1(cy)} Q0 ${f1(lo * 2 - cy)} ${f1(w)} ${f1(cy)} Q0 ${f1(top * 2 - cy)} ${f1(-w)} ${f1(cy)} Z`);
-  mouthP.setAttribute('transform', tr); mouthP.setAttribute('stroke', '#101010'); mouthP.setAttribute('stroke-width', 9); mouthP.setAttribute('stroke-linejoin', 'round');
+  const w = F.w, cy = F.cy, lo = F.mlo + F.talk * 20, top = F.mup - F.talk * 3, tr = `translate(200 252) scale(.72)`;
+  const md = `M${f1(-w)} ${f1(cy)} Q0 ${f1(lo * 2 - cy)} ${f1(w)} ${f1(cy)} Q0 ${f1(top * 2 - cy)} ${f1(-w)} ${f1(cy)} Z`;
+  mouthP.setAttribute('d', md); mouthP.setAttribute('transform', tr); mouthP.setAttribute('stroke', 'none'); mouthP.setAttribute('stroke-linejoin', 'round');
+  const tg = Math.min(1.4, F.tongue), ty = lo * .82;
+  tongueP.setAttribute('d', tg > .05 && lo > 20 ? `M${f1(-w * .45 * tg)} ${f1(ty)} Q0 ${f1(ty - 26 * tg)} ${f1(w * .45 * tg)} ${f1(ty)} Q${f1(w * .3)} ${f1(lo * 1.02)} 0 ${f1(lo * 1.02)} Q${f1(-w * .3)} ${f1(lo * 1.02)} ${f1(-w * .45 * tg)} ${f1(ty)}Z` : '');
+  tongueP.setAttribute('transform', tr);
   let fd = '';
-  if (F.teeth > .05 && w > 50) for (const sx of [-1, 1]) { const x = sx * w * .42, tt = x / w, y = cy + (top * 2 - 2 * cy) * (1 - tt * tt) * .5; fd += `M${f1(x - 15)} ${f1(y - 4)} L${f1(x + sx * 2)} ${f1(y + 28 + F.teeth * 6)} L${f1(x + 15)} ${f1(y - 4)} Z`; }
-  fangsP.setAttribute('d', fd); fangsP.setAttribute('transform', tr); fangsP.setAttribute('opacity', Math.min(1, F.teeth));
+  if (F.teeth > .05 && w > 34) {
+    for (const sx of [-1, 1]) { const x = sx * w * .5, tt = x / w, y = cy + (top * 2 - 2 * cy) * (1 - tt * tt) * .5; fd += `M${f1(x - 10)} ${f1(y - 2)} L${f1(x + sx)} ${f1(y + 22 * F.teeth)} L${f1(x + 10)} ${f1(y - 2)}Z`; }
+    for (const sx of [-1, 1]) { const x = sx * w * .28, tt = x / w, y = cy + (lo * 2 - 2 * cy) * (1 - tt * tt) * .5; if (false) fd += `M${f1(x - 7)} ${f1(y + 2)} L${f1(x)} ${f1(y - 12 * F.teeth)} L${f1(x + 7)} ${f1(y + 2)}Z`; }
+  }
+  fangsP.setAttribute('d', fd); fangsP.setAttribute('transform', tr);
 }
-const FACE_KEYS = ['in', 'out', 'up', 'lo', 'open', 'w', 'cy', 'mup', 'mlo', 'teeth', 'wink'];
+const FACE_KEYS = ['in', 'out', 'up', 'lo', 'open', 'w', 'cy', 'mup', 'mlo', 'teeth', 'tongue', 'wink'];
 function tweenFace(dt, now) {
   const k = 1 - Math.exp(-dt * 14);
   for (const key of FACE_KEYS) F[key] += ((T[key] ?? 0) - F[key]) * k;
   const talkT = bubble.classList.contains('show') && now < talkUntil ? (.5 + .5 * Math.sin(now / 55)) * (.6 + .4 * Math.sin(now / 130)) : 0;
   F.talk += (talkT - F.talk) * Math.min(1, dt * 30);
-  drawFace(now);
+  drawFace();
 }
 
 /* ---------- animaciones: funciones de p (0..1) que suman sobre la pose ---------- */
@@ -207,37 +237,102 @@ const MEMES = {
   dramatico: [{ cara: 'sorpresa' }, { efecto: 'exclamacion' }, { animacion: 'latido' }],
 };
 
+/* ---------- poderes extra (la IA los combina como quiera) ---------- */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, +v || 0));
+const OV = { until: 0, x: 50, y: 50, size: 1, follow: false, hide: false };
+function mover(x, y, ms = 5000) { Object.assign(OV, { x: clamp(x, 5, 95), y: clamp(y, 12, 90), until: performance.now() + clamp(ms, 800, 12000), follow: false, hide: false }); }
+function perseguir(ms = 4000) { Object.assign(OV, { follow: true, hide: false, until: performance.now() + clamp(ms, 1000, 10000) }); }
+function esconderse(ms = 4000) { Object.assign(OV, { hide: true, follow: false, x: Math.random() > .5 ? 102 : -2, y: 60 + Math.random() * 25, until: performance.now() + clamp(ms, 1500, 10000) }); }
+let sizeMul = 1, sizeUntil = 0;
+function tamano(v, ms = 5000) { sizeMul = clamp(v, .4, 1.8); sizeUntil = performance.now() + clamp(ms, 800, 12000); }
+const setStops = (id, cols) => stage.querySelectorAll(`#${id} stop`).forEach((st, i) => cols[i] && st.setAttribute('stop-color', cols[i]));
+const FUR0 = ['#ffffff', '#ffffff', '#e6eaf3'], EYE0 = ['#22222a', '#16161b', '#0d0d11'];
+const hexOk = (h) => /^#[0-9a-f]{6}$/i.test(String(h));
+const shade = (h, k) => '#' + hex2(h).map((c) => Math.round(Math.min(255, c * k)).toString(16).padStart(2, '0')).join('');
+let colTimer;
+function colorPelo(h, ms = 6000) { if (!hexOk(h)) return; setStops('furG', [shade(h, 1.5), h, shade(h, .5)]); setStops('furG2', [shade(h, 1.3), shade(h, .5)]); clearTimeout(colTimer); colTimer = setTimeout(() => { setStops('furG', FUR0); setStops('furG2', ['#ffffff', '#e9edf5']); }, clamp(ms, 1500, 15000)); }
+let eyeTimer;
+function colorOjos(h, ms = 6000) { if (!hexOk(h)) return; setStops('eyeG', [shade(h, 1.5), h, shade(h, .7)]); clearTimeout(eyeTimer); eyeTimer = setTimeout(() => setStops('eyeG', EYE0), clamp(ms, 1500, 15000)); }
+function pantalla(k) {
+  const b = document.body;
+  if (k === 'temblar') { b.classList.remove('fx-shake'); void b.offsetWidth; b.classList.add('fx-shake'); setTimeout(() => b.classList.remove('fx-shake'), 700); }
+  else if (k === 'flash' || k === 'rayo') { const f = document.createElement('div'); f.className = 'fx-flash'; document.body.appendChild(f); setTimeout(() => f.remove(), 600); if (k === 'rayo') rayo(); }
+  else if (k === 'oscurecer') { b.classList.add('fx-dim'); setTimeout(() => b.classList.remove('fx-dim'), 2600); }
+  else if (k === 'invertir') { b.classList.add('fx-invert'); setTimeout(() => b.classList.remove('fx-invert'), 900); }
+}
+function rayo() {
+  const o = screenPos(0, 1.2), sv = document.createElementNS(NS, 'svg'); sv.setAttribute('class', 'fx-bolt'); sv.setAttribute('width', innerWidth); sv.setAttribute('height', innerHeight);
+  let d = `M${o.x + (Math.random() - .5) * 200} 0`, y = 0; while (y < o.y) { y += 40 + Math.random() * 50; d += ` L${o.x + (Math.random() - .5) * 90} ${Math.min(y, o.y)}`; }
+  sv.innerHTML = `<path d="${d}" fill="none" stroke="#e6d6ff" stroke-width="4" stroke-linejoin="round" style="filter:drop-shadow(0 0 10px #a77bff)"/>`; document.body.appendChild(sv); setTimeout(() => sv.remove(), 450);
+}
+function resaltar(id) {
+  const t = /^\d+$/.test(String(id)) ? document.getElementById('p-' + id) : document.getElementById(String(id));
+  if (!t) return; t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+  const box = t.querySelector('.ch__text') || t; box.classList.remove('fx-hl'); void box.offsetWidth; box.classList.add('fx-hl'); setTimeout(() => box.classList.remove('fx-hl'), 2400);
+}
+function clonar(n = 3) {
+  n = clamp(n, 1, 6);
+  for (let i = 0; i < n; i++) { const c = stage.cloneNode(true); c.removeAttribute('id'); c.classList.add('fx-clone'); c.setAttribute('aria-hidden', 'true'); document.body.appendChild(c);
+    const dx = (Math.random() - .5) * innerWidth * .6, dy = (Math.random() - .5) * innerHeight * .4, base = stage.style.transform;
+    c.animate([{ transform: base, opacity: .9 }, { transform: `${base} translate(${dx}px, ${dy}px) scale(.6)`, opacity: 0 }], { duration: 1600 + i * 200, easing: 'cubic-bezier(.2,.8,.2,1)' }).finished.then(() => c.remove()); }
+}
+function lluvia(g = '✦') {
+  if (reduced) return; g = String(g || '✦').slice(0, 2);
+  for (let i = 0; i < 26; i++) { const e = document.createElement('i'); e.textContent = g; e.style.left = `${Math.random() * 100}vw`; e.style.top = '-40px'; e.style.fontSize = `${16 + Math.random() * 22}px`; e.style.color = '#d9c6ff'; fx.appendChild(e);
+    e.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: `translateY(${innerHeight + 80}px) rotate(${(Math.random() - .5) * 360}deg)`, opacity: .6 }], { duration: 1800 + Math.random() * 1600, delay: Math.random() * 600, easing: 'linear', fill: 'backwards' }).finished.then(() => e.remove()); }
+}
+function caraLibre(o) { if (!o || typeof o !== 'object') return; for (const k of FACE_KEYS) if (k in o) T[k] = clamp(o[k], -80, 160); clearTimeout(faceTimer); faceTimer = setTimeout(() => cara('contento'), 3500); }
+let nextT;
+function siguiente(sec) { clearTimeout(nextT); const s2 = clamp(sec, 15, 180); nextT = setTimeout(() => { if (!document.hidden) think('libre', {}, 12000); }, s2 * 1000); }
+
 /* ---------- ejecutor de acciones (lista blanca) ---------- */
 const hist = [];
 let queue = Promise.resolve();
 function run(acciones) {
-  const list = (Array.isArray(acciones) ? acciones : []).slice(0, 6).flatMap((a) => a && a.meme && MEMES[a.meme] ? MEMES[a.meme] : [a]);
+  const list = (Array.isArray(acciones) ? acciones : []).slice(0, 8).flatMap((a) => a && a.meme && MEMES[a.meme] ? MEMES[a.meme] : [a]);
   queue = queue.then(async () => {
     for (const a of list) {
       if (!a || typeof a !== 'object') continue;
       if (a.cara) caraUn(a.cara, 3200);
+      if (a.cara_libre) caraLibre(a.cara_libre);
       if (a.color) color(a.color);
+      if (a.color_llamas) color(a.color_llamas, 6000);
+      if (a.color_pelo) colorPelo(a.color_pelo, a.ms);
+      if (a.color_ojos) colorOjos(a.color_ojos, a.ms);
+      if (a.mover) mover(a.mover.x, a.mover.y, a.mover.ms);
+      if (a.volver) OV.until = 0;
+      if (a.perseguir_cursor) perseguir(a.perseguir_cursor);
+      if (a.esconderse) esconderse(a.esconderse);
+      if (a.tamano) tamano(a.tamano, a.ms);
+      if (a.pantalla) pantalla(a.pantalla);
+      if (a.clonar) clonar(a.clonar);
+      if (a.lluvia) lluvia(a.lluvia);
+      if (a.resaltar != null) resaltar(a.resaltar);
       if (a.efecto) efecto(a.efecto, a.texto);
+      if (a.terminal) decir(`> ${String(a.terminal).slice(0, 80)}`, 2600);
       if (a.decir) { decir(a.decir, a.ms || 3200); hist.push({ dijo: String(a.decir).slice(0, 90) }); await sleep(500); }
       if (a.animacion) await sleep(anim(a.animacion) * .7);
-      if (a.esperar) await sleep(Math.min(+a.esperar || 0, 3000));
+      if (a.esperar) await sleep(Math.min(+a.esperar || 0, 4000));
       if (a.ir) document.getElementById(a.ir)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+      if (a.siguiente) siguiente(a.siguiente);
     }
   }).catch(() => {});
 }
-window.s0k1x = { run, cara, anim, decir, efecto, color, memes: Object.keys(MEMES), caras: Object.keys(CARAS), animaciones: Object.keys(ANIMS) };
+window.s0k1x = { run, cara, anim, decir, efecto, color, mover, perseguir, esconderse, tamano, pantalla, clonar, lluvia, resaltar, colorPelo, colorOjos,
+  memes: Object.keys(MEMES), caras: Object.keys(CARAS), animaciones: Object.keys(ANIMS) };
 
 /* =========================================================
    Cerebro: Gemini vía Supabase, con respaldo local
    ========================================================= */
 let calls = 0, lastCall = 0, aiDown = false;
 const LOCAL = {
-  inicio: () => [{ cara: 'malvado' }, { animacion: 'saludar' }, { decir: 'Buenas, soy Chispa, el fantasma de esta web. Pulsa en mí si te aburres.' }],
+  inicio: () => [{ cara: 'malvado' }, { animacion: 'saludar' }, { decir: 'Muajaja. Soy Chispa y esta web es mía. Bueno, de s0k1x. De momento.' }],
   seccion: (c) => c.seccion === 'contacto' ? [{ cara: 'feliz' }, { animacion: 'saltar' }, { decir: '¿Hablamos? s0k1x contesta rápido.' }]
     : c.seccion === 'kit' ? [{ cara: 'chulo' }, { animacion: 'girar' }] : c.seccion === 'herramientas' ? [{ cara: 'pensando' }, { animacion: 'asentir' }] : [{ cara: 'feliz' }, { animacion: 'flotar' }],
   proyecto: () => [{ cara: pick(['feliz', 'chulo', 'amor']) }, { animacion: pick(['saltar', 'girar', 'rebotar', 'latido']) }],
   clic: () => pick([[{ cara: 'malvado' }, { animacion: 'risa_malvada' }, { decir: 'Jejeje... Has caído en mi trampa.' }], [{ cara: 'chulo' }, { animacion: 'voltereta' }], [{ cara: 'risa' }, { animacion: 'pirueta' }], [{ cara: 'feliz' }, { animacion: 'rueda' }], [{ cara: 'risa' }, { animacion: 'reir' }], [{ meme: '67' }], [{ cara: 'sorpresa' }, { animacion: 'teletransporte' }], [{ cara: 'lengua' }, { animacion: 'bailar' }], [{ cara: 'mareado' }, { animacion: 'girar' }]]),
   inactivo: () => [{ cara: 'dormido' }, { efecto: 'zzz' }, { animacion: 'dormir' }],
+  libre: () => pick([[{ cara: 'malvado' }, { esconderse: 3000 }, { esperar: 2500 }, { decir: 'Jejeje, ¿me has echado de menos?' }], [{ perseguir_cursor: 3500 }, { cara: 'chulo' }], [{ cara: 'malvado' }, { clonar: 3 }, { decir: 'Somos legión. Bueno, somos tres.' }], [{ pantalla: 'rayo' }, { cara: 'risa' }, { animacion: 'risa_malvada' }]]),
   vuelve: () => [{ cara: 'sorpresa' }, { animacion: 'temblar' }, { decir: '¡Has vuelto!' }],
   mensaje: (c) => /6\s*7|six seven/i.test(c.mensaje) ? [{ meme: '67' }] : [{ cara: 'pensando' }, { animacion: 'encogerse' }, { decir: 'Ahora mismo no tengo el cerebro conectado. Prueba más tarde.' }],
 };
@@ -352,10 +447,15 @@ const G = { x: innerWidth * .7, y: innerHeight * .5, size: 400, u: 140 };
 const target = { x: 0, y: 0, size: 400 };
 let blinkAt = performance.now() + 2500, first = true, prevX = 0, prevY = 0, sprX = 0, sprY = 0, lastNow = 0, dt = .016;
 function poseTarget() {
-  const pose = currentEl?.dataset.pose || 'hero', W = innerWidth, H = innerHeight;
+  const pose = currentEl?.dataset.pose || 'hero', W = innerWidth, H = innerHeight, now = performance.now();
   if (mobile()) Object.assign(target, { x: W * .5, y: H * .27, size: Math.min(W * .62, H * .36) });
   else if (pose === 'center') Object.assign(target, { x: W * .5, y: H * .3, size: Math.min(H * .36, 320) });
   else Object.assign(target, { x: W * (pose === 'hero' ? .7 : .7), y: H * .5, size: Math.min(H * .58, 520) });
+  if (now < OV.until) {
+    if (OV.follow) { target.x = (ptr.x + 1) / 2 * W + 120; target.y = (ptr.y + 1) / 2 * H - 40; target.size *= .6; }
+    else { target.x = OV.x / 100 * W; target.y = OV.y / 100 * H; if (OV.hide) target.size *= .8; }
+  }
+  if (now < sizeUntil) target.size *= sizeMul;
 }
 const D = 180 / Math.PI;
 function frame(now) {
@@ -385,8 +485,10 @@ function frame(now) {
   sprX += (Math.max(-1, Math.min(1, -vx / 900)) - sprX) * .1; sprY += (Math.max(-1, Math.min(1, vy / 900)) - sprY) * .1;
   tufts.forEach((tf, i) => { const [px, py] = PIV.tf[i]; tf.setAttribute('transform', `rotate(${f1((sprX * 18 + S(t * 2.3 + i * 1.7) * 3 + (i ? 1 : -1) * Math.max(0, -sprY) * 12))} ${px} ${py}) translate(${px} ${py}) scale(1 ${f1(1 + sprY * .25 + S(t * 4 + i * 2) * .05)}) translate(${-px} ${-py})`); });
   tint = tint.map((c, i) => c + ((tintOverride && now < tintOverrideUntil ? tintOverride : tintTarget)[i] - c) * .06);
-  const mix = tint.map((c) => Math.round(255 - (255 - c) * .55));
-  gSil.setAttribute('fill', `rgb(${mix.join(',')})`);
+    const wc = tint.map((c) => Math.round(255 - (255 - c) * .6));
+  gSil.style.setProperty('--wisp', `rgb(${wc.join(',')})`);
+  wisps.forEach((w, i) => { const [x, y] = WISPS[i]; w.setAttribute('transform', `translate(${f1(x + S(t * .9 + i) * 6)} ${f1(y + S(t * 1.3 + i * 2) * 8)}) rotate(${f1(S(t * 1.7 + i) * 8)}) scale(${f1(1 + S(t * 6 + i * 3) * .05)} ${f1(1 + S(t * 5 + i) * .08)})`); w.style.opacity = .75 + S(t * 3 + i * 1.3) * .25; });
+  tailG.setAttribute('transform', `rotate(${f1(S(t * 1.6) * 5 + sprX * 14)} 160 330)`);
   F.look += (ptr.x - F.look) * .1; F.lookY += (ptr.y - F.lookY) * .1;
   const bp = (now - blinkAt) / 150; F.blink = bp > 0 && bp < 1 ? Math.sin(bp * Math.PI) : 0;
   if (bp >= 1) blinkAt = now + 2200 + Math.random() * 3200;
@@ -422,7 +524,7 @@ $('#tools').innerHTML = TOOLS.map(([f, l, ink]) => `<li><img src="assets/icons/$
 $('#year').textContent = new Date().getFullYear();
 
 /* ---------- arranque ---------- */
-cara('malvado');
+cara('contento');
 observeChapters();
 getProjects().then((p) => { PROJECTS = p; renderProjects(); });
 setTimeout(() => think('inicio', {}, 0), 1200);
