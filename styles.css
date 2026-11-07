@@ -12,7 +12,7 @@ button, input { font: inherit; color: inherit; }
 ::selection { background: var(--accent); color: #fff; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
 
-#scene { position: fixed; inset: 0; width: 100vw; height: 100svh; z-index: 0; display: block; }
+#scene { position: fixed; inset: 0; width: 100vw; height: 100svh; z-index: 0; display: block; filter: drop-shadow(0 0 6px rgba(255, 255, 255, .9)) drop-shadow(0 0 22px rgba(255, 255, 255, .55)); }
 .fx { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
 
 /* nav */

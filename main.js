@@ -41,15 +41,13 @@ const VERT = `uniform float uTime; uniform float uWob; uniform float uThick; var
 // sombreado plano por bandas (cel shading), sombra fría y borde de luz con el color del capítulo
 const TOON = `uniform vec3 uTint; uniform float uOpacity; varying vec3 vN; varying vec3 vV;
   void main(){ vec3 n = normalize(vN); float d = dot(n, normalize(vec3(-.45, .7, .6)));
-    float band = d > .45 ? 1.0 : d > -.05 ? .84 : .7;
-    vec3 base = mix(vec3(.62, .74, .86), vec3(1.0), band);
     float rim = 1.0 - abs(dot(n, normalize(vV)));
-    base += uTint * smoothstep(.62, .72, rim) * .55; base = mix(base, base * mix(vec3(1.0), uTint, .35), .6);
+    vec3 base = mix(vec3(.93), vec3(1.0), smoothstep(-.3, .5, d)) + rim * .15;
+    base = mix(base, uTint, smoothstep(.55, 1.0, rim) * .5);
     gl_FragColor = vec4(base, uOpacity); }`;
 const LINE = `uniform float uOpacity; void main(){ gl_FragColor = vec4(.04, .04, .07, uOpacity); }`;
 function part(geo, wob = .6, thick = .028) {
   const g = new THREE.Group();
-  g.add(new THREE.Mesh(geo, new THREE.ShaderMaterial({ uniforms: { ...U, uWob: { value: wob }, uThick: { value: thick } }, vertexShader: VERT, fragmentShader: LINE, side: THREE.BackSide, transparent: true })));
   g.add(new THREE.Mesh(geo, new THREE.ShaderMaterial({ uniforms: { ...U, uWob: { value: wob }, uThick: { value: 0 } }, vertexShader: VERT, fragmentShader: TOON, transparent: true })));
   return g;
 }
@@ -57,7 +55,7 @@ const ghost = new THREE.Group(), rig = new THREE.Group();
 ghost.add(rig); scene.add(ghost);
 // cuerpo redondito
 const prof = [[0, -1], [.46, -.97], [.73, -.83], [.89, -.57], [.95, -.22], [.92, .14], [.82, .45], [.64, .72], [.4, .9], [.16, .99], [0, 1.01]].map(([x, y]) => new THREE.Vector2(x, y));
-rig.add(part(new THREE.LatheGeometry(prof, 48), .5, .045));
+rig.add(part(new THREE.LatheGeometry(prof, 64), .5, .045));
 const flameGeo = (r, h) => new THREE.LatheGeometry([[0, 0], [r * .8, h * .08], [r, h * .25], [r * .85, h * .5], [r * .5, h * .75], [r * .18, h * .93], [0, h]].map(([x, y]) => new THREE.Vector2(x, y)), 20);
 // tres llamitas en la cabeza (se balancean con muelle)
 const tufts = [[-.36, .86, .5, .5], [0, 1.0, 0, .66], [.36, .86, -.5, .5]].map(([x, y, rz, h]) => {
@@ -70,11 +68,16 @@ const tail = new THREE.Group(); tail.position.set(.2, -.55, -.7); tail.rotation.
 const tc = part(flameGeo(.26, .95), 1.6, .03); tc.position.y = -.05; tail.add(tc); rig.add(tail);
 // patitas
 for (const s of [-1, 1]) { const f = part(new THREE.SphereGeometry(.2, 20, 14), 0, .03); f.scale.set(1.3, .7, 1.5); f.position.set(s * .42, -.98, .18); rig.add(f); }
-// bracitos con tres garras
+// bracitos con manita de tres dedos redondeados
 const arms = [-1, 1].map((s) => {
-  const g = new THREE.Group(); g.position.set(s * .82, -.1, .05);
-  const arm = part(new THREE.CapsuleGeometry(.13, .32, 6, 14), .3, .03); arm.rotation.z = PI2; arm.position.x = s * .26; g.add(arm);
-  for (let k = -1; k <= 1; k++) { const cl = part(new THREE.ConeGeometry(.05, .16, 10), 0, .02); cl.position.set(s * .58, k * .07, .04); cl.rotation.z = -s * (PI2 - k * .35); g.add(cl); }
+  const g = new THREE.Group(); g.position.set(s * .8, -.12, .05);
+  const arm = part(new THREE.CapsuleGeometry(.12, .28, 8, 16), .3, .028); arm.rotation.z = PI2; arm.position.x = s * .22; g.add(arm);
+  const hand = part(new THREE.SphereGeometry(.15, 20, 16), 0, .028); hand.scale.set(1, .9, .85); hand.position.x = s * .5; g.add(hand);
+  [[.1, .4], [.13, 0], [.1, -.4]].forEach(([len, ang], k) => {
+    const fg = part(new THREE.CapsuleGeometry(.045, len, 6, 10), 0, .018);
+    fg.rotation.z = -s * PI2 + ang * s; fg.position.set(s * (.62 + Math.cos(ang) * .02), Math.sin(ang) * .1, .02 + (k === 1 ? .02 : 0)); g.add(fg);
+  });
+  const th = part(new THREE.CapsuleGeometry(.04, .07, 6, 10), 0, .018); th.rotation.set(.9, 0, -s * .4); th.position.set(s * .5, .1, .12); g.add(th);
   rig.add(g); return g;
 });
 // cara: textura de canvas sobre un trozo de cilindro que abraza la barriga
@@ -86,10 +89,10 @@ face.position.y = .02; rig.add(face);
 // brillo
 const gc = document.createElement('canvas'); gc.width = gc.height = 128;
 const gx = gc.getContext('2d'), grad = gx.createRadialGradient(64, 64, 0, 64, 64, 64);
-grad.addColorStop(0, 'rgba(255,255,255,.55)'); grad.addColorStop(.35, 'rgba(255,255,255,.16)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+grad.addColorStop(0, 'rgba(255,255,255,.7)'); grad.addColorStop(.3, 'rgba(255,255,255,.22)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
 gx.fillStyle = grad; gx.fillRect(0, 0, 128, 128);
 const glowMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(gc), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
-const glow = new THREE.Sprite(glowMat); glow.scale.set(5.6, 5.6, 1); glow.position.set(0, 0, -.9); ghost.add(glow);
+const glow = new THREE.Sprite(glowMat); glow.scale.set(4.6, 4.6, 1); glow.position.set(0, 0, -.9); ghost.add(glow);
 // polvo de estrellas de fondo (sutil)
 const SD = 320, sd = new Float32Array(SD * 3);
 for (let i = 0; i < SD; i++) { sd[i * 3] = (Math.random() - .5) * 26; sd[i * 3 + 1] = (Math.random() - .5) * 16; sd[i * 3 + 2] = -4 - Math.random() * 8; }
@@ -103,69 +106,77 @@ const embG = new THREE.BufferGeometry(); embG.setAttribute('position', new THREE
 const embMat = new THREE.PointsMaterial({ size: .05, color: 0xffffff, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false });
 ghost.add(new THREE.Points(embG, embMat));
 
-/* ---------- caras (ojos × boca = cientos de combinaciones) ---------- */
+/* ---------- cara paramétrica: ojos y boca se transforman de forma continua (cada frame) ---------- */
 const INK = '#050505';
-const F = { eyes: 'malvado', mouth: 'sonrisa', blink: 0, look: 0, lookY: 0 };
+// ojo: in = altura esquina interior, out = esquina exterior, up/lo = curvas de párpados, open = apertura
+// boca: w = ancho, cy = altura de las comisuras, up/lo = curvas, teeth = dientes (0-1)
+const P = (o) => ({ in: 24, out: -30, up: -26, lo: 30, open: 1, w: 132, cy: -24, mup: 20, mlo: 96, teeth: 1, ...o });
 const CARAS = {
-  neutro: ['redondo', 'plana'], feliz: ['feliz', 'sonrisa'], malvado: ['malvado', 'sonrisa'], risa: ['feliz', 'grande'], sorpresa: ['redondo', 'o'],
-  enfado: ['enfado', 'plana'], triste: ['triste', 'triste'], dormido: ['cerrado', 'plana'], amor: ['corazon', 'sonrisa'], guino: ['guino', 'sonrisilla'],
-  pensando: ['lado', 'sonrisilla'], asustado: ['redondo', 'ondulada'], aburrido: ['aburrido', 'plana'], chulo: ['malvado', 'sonrisilla'], lengua: ['feliz', 'lengua'],
-  mareado: ['espiral', 'ondulada'], estrellas: ['estrella', 'grande'], muerto: ['x', 'ondulada'],
+  malvado: P({}),
+  chulo: P({ in: 6, out: -18, up: -20, lo: 22, w: 104, cy: -10, mup: 14, mlo: 60 }),
+  feliz: P({ in: 12, out: 12, up: -40, lo: -6, w: 120, cy: -26, mup: 18, mlo: 96 }),
+  risa: P({ in: 14, out: 14, up: -42, lo: -10, w: 132, cy: -34, mup: 12, mlo: 128, teeth: .7 }),
+  sorpresa: P({ in: 0, out: 0, up: -48, lo: 48, w: 34, cy: 10, mup: -24, mlo: 46, teeth: 0 }),
+  enfado: P({ in: 30, out: -34, up: -2, lo: 30, w: 96, cy: 6, mup: 4, mlo: 40 }),
+  triste: P({ in: -26, out: 14, up: -26, lo: 30, w: 70, cy: 36, mup: -8, mlo: 6, teeth: 0 }),
+  dormido: P({ in: 6, out: 6, up: 4, lo: 6, open: 0, w: 60, cy: 12, mup: 10, mlo: 16, teeth: 0 }),
+  pensando: P({ in: 4, out: -14, up: -28, lo: 24, w: 66, cy: 8, mup: 2, mlo: 22, teeth: 0 }),
+  asustado: P({ in: -8, out: -8, up: -50, lo: 44, w: 92, cy: 14, mup: -6, mlo: 34, teeth: 1 }),
+  aburrido: P({ in: 0, out: 0, up: -2, lo: 30, w: 60, cy: 12, mup: 10, mlo: 14, teeth: 0 }),
+  lengua: P({ in: 12, out: 12, up: -40, lo: -6, w: 110, cy: -18, mup: 16, mlo: 80, teeth: .4 }),
+  guino: P({}), amor: P({}), mareado: P({}), estrellas: P({}), muerto: P({}), neutro: P({ in: 0, out: 0, up: -40, lo: 40, w: 60, cy: 10, mup: 8, mlo: 14, teeth: 0 }),
 };
-const IRIS = '#2fe3ff';
-function eye(kind, side) {
-  const c = fctx; c.save(); c.translate(256 + side * 96, 112); c.scale(side, 1);
-  c.fillStyle = c.strokeStyle = INK; c.lineWidth = 16; c.lineCap = c.lineJoin = 'round';
-  const k = kind === 'guino' ? (side === 1 ? 'feliz' : 'malvado') : kind;
-  const shut = F.blink > .5 && ['malvado', 'enfado', 'triste', 'redondo', 'lado', 'aburrido'].includes(k);
-  const shape = {
-    malvado: () => { c.moveTo(-52, 16); c.quadraticCurveTo(-10, -40, 50, -34); c.quadraticCurveTo(46, 34, -10, 34); c.quadraticCurveTo(-40, 32, -52, 16); },
-    enfado: () => { c.moveTo(-50, 26); c.quadraticCurveTo(-6, -8, 50, -30); c.quadraticCurveTo(46, 34, -10, 34); c.quadraticCurveTo(-40, 34, -50, 26); },
-    triste: () => { c.moveTo(-48, -26); c.quadraticCurveTo(14, -18, 50, 14); c.quadraticCurveTo(30, 40, -14, 36); c.quadraticCurveTo(-48, 26, -48, -26); },
-    redondo: () => c.ellipse(0, 0, 40, 46, 0, 0, 7),
-    lado: () => c.ellipse(0, 0, 40, 46, 0, 0, 7),
-    aburrido: () => { c.moveTo(-46, -2); c.lineTo(46, -2); c.quadraticCurveTo(44, 36, 0, 36); c.quadraticCurveTo(-44, 36, -46, -2); },
-  }[k];
-  if (shape && !shut) {
-    c.beginPath(); shape(); c.closePath(); c.fill();
-    c.save(); c.clip();
-    const lx = (k === 'lado' ? .8 : F.look) * 14 * side, ly = F.lookY * 10 + (k === 'aburrido' ? 12 : 4);
-    const g = c.createRadialGradient(lx + 6, ly, 2, lx + 6, ly, 26); g.addColorStop(0, '#d6fbff'); g.addColorStop(.45, IRIS); g.addColorStop(1, '#0b5a78');
-    c.fillStyle = g; c.beginPath(); c.arc(lx + 6, ly, 24, 0, 7); c.fill();
-    c.fillStyle = INK; c.beginPath(); c.arc(lx + 6, ly, 10, 0, 7); c.fill();
-    c.fillStyle = '#fff'; c.beginPath(); c.arc(lx + 16, ly - 10, 7, 0, 7); c.fill(); c.beginPath(); c.arc(lx - 2, ly + 10, 3.5, 0, 7); c.fill();
-    c.restore();
-  } else {
-    c.beginPath();
-    if (shut || k === 'cerrado') { c.moveTo(-42, 6); c.quadraticCurveTo(0, 22, 42, 6); c.stroke(); }
-    else if (k === 'feliz') { c.moveTo(-42, 16); c.quadraticCurveTo(0, -38, 42, 16); c.stroke(); }
-    else if (k === 'corazon') { c.fillStyle = '#ff5c8a'; c.moveTo(0, 34); c.bezierCurveTo(-66, -6, -28, -50, 0, -16); c.bezierCurveTo(28, -50, 66, -6, 0, 34); c.fill(); c.lineWidth = 7; c.stroke(); }
-    else if (k === 'x') { c.moveTo(-28, -28); c.lineTo(28, 28); c.moveTo(28, -28); c.lineTo(-28, 28); c.stroke(); }
-    else if (k === 'espiral') { c.lineWidth = 8; for (let a = 0; a < 16; a += .2) { const r = a * 2.4; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); }
-    else if (k === 'estrella') { c.fillStyle = '#ffd23f'; for (let i = 0; i < 10; i++) { const r = i % 2 ? 18 : 44, a = -Math.PI / 2 + i * Math.PI / 5; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); c.fill(); c.lineWidth = 6; c.stroke(); }
-  }
-  c.restore();
-}
-function mouth(kind) {
-  const c = fctx; c.save(); c.translate(256 + F.look * 10, 224); c.fillStyle = c.strokeStyle = INK; c.lineWidth = 14; c.lineCap = c.lineJoin = 'round'; c.beginPath();
-  if (kind === 'sonrisa' || kind === 'lengua') {
-    c.moveTo(-124, -26); c.quadraticCurveTo(0, 92, 124, -26); c.quadraticCurveTo(0, 18, -124, -26); c.fill();
-    c.fillStyle = '#fff'; c.beginPath();
-    for (let i = 0; i < 8; i++) { const x0 = -96 + i * 24, y0 = -26 + 48 * (1 - ((x0 + 12) / 128) ** 2) * .5; c.moveTo(x0, y0 - 2); c.lineTo(x0 + 12, y0 + 18); c.lineTo(x0 + 24, y0 - 2); }
-    c.fill();
-    if (kind === 'lengua') { c.fillStyle = '#d9d9d9'; c.beginPath(); c.ellipse(30, 50, 26, 20, 0, 0, 7); c.fill(); }
-  } else if (kind === 'grande') { c.moveTo(-110, -30); c.quadraticCurveTo(0, 130, 110, -30); c.closePath(); c.fill(); c.fillStyle = '#cfcfcf'; c.beginPath(); c.ellipse(0, 50, 40, 18, 0, 0, 7); c.fill(); }
-  else if (kind === 'o') { c.ellipse(0, 10, 28, 34, 0, 0, 7); c.fill(); }
-  else if (kind === 'plana') { c.moveTo(-50, 10); c.lineTo(50, 10); c.stroke(); }
-  else if (kind === 'triste') { c.moveTo(-60, 30); c.quadraticCurveTo(0, -20, 60, 30); c.stroke(); }
-  else if (kind === 'ondulada') { c.moveTo(-70, 10); for (let i = 1; i <= 7; i++) c.quadraticCurveTo(-70 + i * 20 - 10, i % 2 ? -10 : 30, -70 + i * 20, 10); c.stroke(); }
-  else if (kind === 'sonrisilla') { c.moveTo(-60, 8); c.quadraticCurveTo(10, 40, 70, -14); c.stroke(); }
-  c.restore();
-}
-let faceDirty = true, faceTimer;
-function drawFace() { fctx.clearRect(0, 0, 512, 340); eye(F.eyes, -1); eye(F.eyes, 1); mouth(F.mouth); faceTex.needsUpdate = true; faceDirty = false; }
-function cara(n) { const c = CARAS[n] || CARAS.malvado; F.eyes = c[0]; F.mouth = c[1]; faceDirty = true; }
+const GLYPHS = { amor: 'corazon', mareado: 'espiral', estrellas: 'estrella', muerto: 'x' };
+const F = { ...CARAS.malvado, blink: 0, wink: 0, look: 0, lookY: 0, talk: 0, glyph: '' };
+let T = { ...CARAS.malvado }, faceName = 'malvado';
+function cara(n) { faceName = CARAS[n] ? n : 'malvado'; T = { ...CARAS[faceName] }; F.glyph = GLYPHS[faceName] || ''; T.wink = faceName === 'guino' ? 1 : 0; if (faceName === 'lengua') T.tongue = 1; else T.tongue = 0; }
+let faceTimer;
 function caraUn(n, ms = 2600) { cara(n); clearTimeout(faceTimer); faceTimer = setTimeout(() => cara('malvado'), ms); }
+function eye(side) {
+  const c = fctx; c.save(); c.translate(256 + side * 98 + F.look * 8, 112 + F.lookY * 5); c.scale(side * 1.12, 1.12); c.fillStyle = c.strokeStyle = INK;
+  if (F.glyph) {
+    c.lineWidth = 14; c.lineCap = c.lineJoin = 'round'; c.beginPath(); const g = F.glyph;
+    if (g === 'corazon') { c.moveTo(0, 34); c.bezierCurveTo(-66, -6, -28, -50, 0, -16); c.bezierCurveTo(28, -50, 66, -6, 0, 34); c.fill(); }
+    else if (g === 'x') { c.moveTo(-28, -28); c.lineTo(28, 28); c.moveTo(28, -28); c.lineTo(-28, 28); c.stroke(); }
+    else if (g === 'espiral') { c.lineWidth = 8; for (let a = 0; a < 16; a += .2) { const r = a * 2.4; c.lineTo(Math.cos(a + performance.now() / 300 * side) * r, Math.sin(a + performance.now() / 300 * side) * r); } c.stroke(); }
+    else { for (let i = 0; i < 10; i++) { const r = i % 2 ? 18 : 44, a = -Math.PI / 2 + i * Math.PI / 5; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); c.fill(); }
+    c.restore(); return;
+  }
+  const open = F.open * (1 - F.blink) * (side === 1 ? 1 - F.wink : 1);
+  const mid = (F.in + F.out) / 2, up = mid + (F.up - mid) * Math.max(open, .04), lo = mid + (F.lo - mid) * Math.max(open, .04);
+  c.beginPath(); c.moveTo(-50, F.in); c.quadraticCurveTo(0, up * 1.25 - mid * .25, 50, F.out); c.quadraticCurveTo(0, lo * 1.25 - mid * .25, -50, F.in); c.closePath();
+  c.lineWidth = 10; c.lineJoin = 'round'; c.fill(); c.stroke();
+  if (open > .45) { c.globalAlpha = (open - .45) / .55 * .9; c.fillStyle = '#fff'; c.beginPath(); c.ellipse(16 + F.look * 6 * side, mid - 6, 5.5, 4, -.5, 0, 7); c.fill(); c.globalAlpha = 1; }
+  c.restore();
+}
+function mouth() {
+  const c = fctx; c.save(); c.translate(256 + F.look * 6, 226 + F.lookY * 3); c.fillStyle = INK;
+  const w = F.w, cy = F.cy, upY = cy + (F.mup - cy) * 2 - cy * 0, talk = F.talk;
+  const lo = F.mlo + talk * 26, top = F.mup - talk * 4;
+  c.beginPath(); c.moveTo(-w, cy); c.quadraticCurveTo(0, lo * 2 - cy, w, cy); c.quadraticCurveTo(0, top * 2 - cy, -w, cy); c.closePath(); c.fill();
+  c.lineWidth = 8; c.lineJoin = 'round'; c.strokeStyle = INK; c.stroke();
+  if (F.teeth > .05 && w > 50) {
+    c.save(); c.clip(); c.fillStyle = '#fff'; c.globalAlpha = Math.min(1, F.teeth);
+    const n = Math.max(3, Math.round(w / 17)), step = (w * 2 * .86) / n, x0 = -w * .86, th = 18 + F.teeth * 6;
+    c.beginPath();
+    for (let i = 0; i < n; i++) { const x = x0 + i * step, tt = (x + step / 2) / w, y = cy + (top * 2 - cy - cy) * (1 - tt * tt) * .5 + cy * 0; c.moveTo(x, y - 4); c.lineTo(x + step / 2, y + th); c.lineTo(x + step, y - 4); }
+    c.fill(); c.restore();
+  }
+  if (F.tongue > .05) { c.fillStyle = `rgba(210,210,210,${F.tongue})`; c.beginPath(); c.ellipse(w * .25, (cy + lo) / 2 + 10, 26, 18, 0, 0, 7); c.fill(); }
+  c.restore();
+}
+F.tongue = 0; T.tongue = 0;
+let faceDirty = true;
+function drawFace() { fctx.clearRect(0, 0, 512, 340); eye(-1); eye(1); mouth(); faceTex.needsUpdate = true; }
+const FACE_KEYS = ['in', 'out', 'up', 'lo', 'open', 'w', 'cy', 'mup', 'mlo', 'teeth', 'wink', 'tongue'];
+function tweenFace(dt, now) {
+  const k = 1 - Math.exp(-dt * 14); let moving = false;
+  for (const key of FACE_KEYS) { const d = (T[key] ?? 0) - F[key]; if (Math.abs(d) > .01) { F[key] += d * k; moving = true; } }
+  const talkT = bubble.classList.contains('show') && now < talkUntil ? (.5 + .5 * Math.sin(now / 55)) * (.6 + .4 * Math.sin(now / 130)) : 0;
+  if (Math.abs(talkT - F.talk) > .01) { F.talk += (talkT - F.talk) * Math.min(1, dt * 30); moving = true; }
+  if (moving || faceDirty || F.glyph === 'espiral') { drawFace(); faceDirty = false; }
+}
+let talkUntil = 0;
 
 /* ---------- animaciones: funciones de p (0..1) que suman sobre la pose ---------- */
 const S = Math.sin, PI = Math.PI;
@@ -194,6 +205,11 @@ const ANIMS = {
   espiar: [2200, (p, A) => { const e = S(p * PI); A.x += e * .7; A.ry += e * .9; A.y -= e * .2; }],
   asentir: [1000, (p, A) => { A.rx += S(p * PI * 4) * .2; }],
   negar: [1000, (p, A) => { A.ry += S(p * PI * 4) * .4; }],
+  voltereta: [1100, (p, A) => { const q = Math.min(Math.max((p - .15) / .7, 0), 1); A.rx -= ease(q) * PI * 2; A.y += S(q * PI) * 1.3; const sq = p < .15 ? S(p / .15 * PI) : p > .85 ? S((p - .85) / .15 * PI) : 0; A.sy -= sq * .22; A.sx += sq * .12; A.armL += S(q * PI) * 2; A.armR += S(q * PI) * 2; }],
+  pirueta: [1200, (p, A) => { const q = Math.min(Math.max((p - .12) / .76, 0), 1); A.ry += ease(q) * PI * 4; A.y += S(q * PI) * .9; A.armL += S(q * PI) * 1.6; A.armR += S(q * PI) * 1.6; const sq = p < .12 ? S(p / .12 * PI) : 0; A.sy -= sq * .2; }],
+  rueda: [1400, (p, A) => { A.rz -= ease(p) * PI * 2; A.x += S(p * PI) * 1.2; A.y += Math.abs(S(p * PI * 2)) * .4; A.armL += 2.2; A.armR += 2.2; }],
+  mortal: [1600, (p, A) => { const q = Math.min(Math.max((p - .1) / .8, 0), 1); A.rx -= ease(q) * PI * 4; A.y += S(q * PI) * 1.8; A.s *= 1 - S(q * PI) * .15; }],
+  risa_malvada: [2200, (p, A) => { const e = S(Math.min(p * 3, 1) * PI / 2) * (p > .85 ? (1 - p) / .15 : 1); A.rx -= e * .25; A.y += Math.abs(S(p * PI * 10)) * .08 * e; A.armL += e * (1.1 + S(p * PI * 10) * .15); A.armR += e * (1.1 - S(p * PI * 10) * .15); A.sy += e * .04; }],
   encogerse: [1400, (p, A) => { const e = S(p * PI); A.armL += e * 1.1; A.armR += e * 1.1; A.sy -= e * .08; A.y -= e * .06; }],
 };
 const active = [];
@@ -234,7 +250,7 @@ function efecto(kind, texto) {
 }
 const bubble = $('#bubble');
 let bubbleUntil = 0;
-function decir(t, ms = 3200) { bubble.textContent = String(t).slice(0, 140); bubble.classList.add('show'); bubbleUntil = performance.now() + Math.min(Math.max(ms, 1500), 8000); }
+function decir(t, ms = 3200) { talkUntil = performance.now() + Math.min(String(t).length * 55, 4000); bubble.textContent = String(t).slice(0, 140); bubble.classList.add('show'); bubbleUntil = performance.now() + Math.min(Math.max(ms, 1500), 8000); }
 
 /* ---------- tono ---------- */
 const tint = new THREE.Color('#ffffff'), tintTarget = new THREE.Color('#ffffff');
@@ -278,11 +294,11 @@ window.s0k1x = { run, cara, anim, decir, efecto, color, memes: Object.keys(MEMES
    ========================================================= */
 let calls = 0, lastCall = 0, aiDown = false;
 const LOCAL = {
-  inicio: () => [{ cara: 'malvado' }, { animacion: 'saludar' }, { decir: 'Buenas. Soy el fantasma de s0k1x. Pulsa en mí si te aburres.' }],
+  inicio: () => [{ cara: 'malvado' }, { animacion: 'saludar' }, { decir: 'Buenas, soy Chispa, el fantasma de esta web. Pulsa en mí si te aburres.' }],
   seccion: (c) => c.seccion === 'contacto' ? [{ cara: 'feliz' }, { animacion: 'saltar' }, { decir: '¿Hablamos? s0k1x contesta rápido.' }]
     : c.seccion === 'kit' ? [{ cara: 'chulo' }, { animacion: 'girar' }] : c.seccion === 'herramientas' ? [{ cara: 'pensando' }, { animacion: 'asentir' }] : [{ cara: 'feliz' }, { animacion: 'flotar' }],
   proyecto: () => [{ cara: pick(['feliz', 'chulo', 'amor']) }, { animacion: pick(['saltar', 'girar', 'rebotar', 'latido']) }],
-  clic: () => pick([[{ cara: 'risa' }, { animacion: 'reir' }], [{ meme: '67' }], [{ cara: 'sorpresa' }, { animacion: 'teletransporte' }], [{ cara: 'lengua' }, { animacion: 'bailar' }], [{ cara: 'mareado' }, { animacion: 'girar' }]]),
+  clic: () => pick([[{ cara: 'malvado' }, { animacion: 'risa_malvada' }, { decir: 'Jejeje... Has caído en mi trampa.' }], [{ cara: 'chulo' }, { animacion: 'voltereta' }], [{ cara: 'risa' }, { animacion: 'pirueta' }], [{ cara: 'feliz' }, { animacion: 'rueda' }], [{ cara: 'risa' }, { animacion: 'reir' }], [{ meme: '67' }], [{ cara: 'sorpresa' }, { animacion: 'teletransporte' }], [{ cara: 'lengua' }, { animacion: 'bailar' }], [{ cara: 'mareado' }, { animacion: 'girar' }]]),
   inactivo: () => [{ cara: 'dormido' }, { efecto: 'zzz' }, { animacion: 'dormir' }],
   vuelve: () => [{ cara: 'sorpresa' }, { animacion: 'temblar' }, { decir: '¡Has vuelto!' }],
   mensaje: (c) => /6\s*7|six seven/i.test(c.mensaje) ? [{ meme: '67' }] : [{ cara: 'pensando' }, { animacion: 'encogerse' }, { decir: 'Ahora mismo no tengo el cerebro conectado. Prueba más tarde.' }],
@@ -426,10 +442,10 @@ function frame(now) {
   U.uOpacity.value = A.op; glowMat.opacity = .75 * A.op; embMat.opacity = .7 * A.op; face.material.opacity = A.op;
   tint.lerp(tintOverride && now < tintOverrideUntil ? tintOverride : tintTarget, .06);
   U.uTint.value.copy(tint); glowMat.color.copy(tint); embMat.color.copy(tint);
-  const lk = Math.round(ptr.x * 6) / 6, ly = Math.round(ptr.y * 4) / 4; if (lk !== F.look || ly !== F.lookY) { F.look = lk; F.lookY = ly; faceDirty = true; }
-  if (now > blinkAt && !F.blink) { F.blink = 1; faceDirty = true; }
-  if (F.blink && now > blinkAt + 120) { F.blink = 0; faceDirty = true; blinkAt = now + 2500 + Math.random() * 3000; }
-  if (faceDirty) drawFace();
+  F.look += (ptr.x - F.look) * .1; F.lookY += (ptr.y - F.lookY) * .1;
+  const bp = (now - blinkAt) / 150; F.blink = bp > 0 && bp < 1 ? Math.sin(bp * Math.PI) : 0;
+  if (bp >= 1) blinkAt = now + 2200 + Math.random() * 3200;
+  tweenFace(dt, now);
   const pa = embG.attributes.position;
   for (let i = 0; i < N; i++) { let y = pa.getY(i) + embV[i] * .012; if (y > 2.2) y = -.6; pa.setY(i, y); pa.setX(i, pa.getX(i) + S(t * 2 + i) * .002); }
   pa.needsUpdate = true;
