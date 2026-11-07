@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 /* =========================================================
    CONFIG
    ========================================================= */
@@ -21,95 +19,46 @@ const mobile = () => innerWidth <= 820;
 const HUES = ['#ff9a6b', '#ff6b7a', '#6bffb0', '#6bb6ff', '#ffd36b', '#6bfff0', '#ff8ad8', '#b8ff6b', '#ffb36b'];
 
 /* =========================================================
-   Escena 3D: fantasma llama (geometría por código, sin modelos)
+   Chispa: silueta vectorial 2D con resplandor (SVG), animada cada frame
    ========================================================= */
-const canvas = $('#scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
-renderer.setClearColor(0x000000, 1);
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
-camera.position.set(0, 0, 9);
+const NS = 'http://www.w3.org/2000/svg';
+const stage = $('#ghost');
+stage.innerHTML = `<svg viewBox="0 0 400 420" aria-hidden="true">
+  <defs>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="b3"/><feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b2"/><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b1"/>
+      <feMerge><feMergeNode in="b3"/><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.1"/></filter>
+    <linearGradient id="mouthG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0b0b"/><stop offset="1" stop-color="#3b3b3b"/></linearGradient>
+  </defs>
+  <g id="gBody">
+    <g id="gSil" filter="url(#glow)">
+      <g id="tf0" class="tf"><path d="M128 160 C122 126 116 88 112 46 C140 72 164 100 182 130 Z"/></g>
+      <g id="tf1" class="tf"><path d="M272 160 C278 126 284 88 288 46 C260 72 236 100 218 130 Z"/></g>
+      <g id="footL"><ellipse cx="150" cy="352" rx="30" ry="19"/></g>
+      <g id="footR"><ellipse cx="250" cy="352" rx="30" ry="19"/></g>
+      <g id="armL"><path d="M116 238 C90 230 66 214 54 190 C48 176 56 162 70 164 C82 166 90 176 100 186 C110 196 122 206 132 214 Z"/></g>
+      <g id="armR"><path d="M284 238 C310 230 334 214 346 190 C352 176 344 162 330 164 C318 166 310 176 300 186 C290 196 278 206 268 214 Z"/></g>
+      <path id="body" transform="translate(200 230) scale(.95) translate(-200 -230)" d="M200 100 C260 100 304 142 310 204 C316 266 300 312 262 336 C240 350 220 354 200 354 C180 354 160 350 138 336 C100 312 84 266 90 204 C96 142 140 100 200 100 Z"/>
+    </g>
+    <g id="gFace" filter="url(#soft)">
+      <path id="eyeL"/><path id="eyeR"/><ellipse id="pupL" rx="2.6" ry="3.6" fill="#fff"/><ellipse id="pupR" rx="2.6" ry="3.6" fill="#fff"/><path id="mouth" fill="url(#mouthG)"/><path id="fangs" fill="#cfcfcf"/>
+    </g>
+  </g>
+</svg>`;
+const el = (id) => stage.querySelector('#' + id);
+const gBody = el('gBody'), gSil = el('gSil'), gFace = el('gFace'), armL = el('armL'), armR = el('armR');
+const eyeL = el('eyeL'), eyeR = el('eyeR'), mouthP = el('mouth'), fangsP = el('fangs');
+const tufts = [0, 1].map((i) => el('tf' + i)), footL = el('footL'), footR = el('footR'), pupL = el('pupL'), pupR = el('pupR');
+const PIV = { tf: [[150, 136], [250, 136]], armL: [122, 222], armR: [278, 222] };
 
-const U = { uTime: { value: 0 }, uTint: { value: new THREE.Color('#ffffff') }, uOpacity: { value: 1 } };
-const VERT = `uniform float uTime; uniform float uWob; uniform float uThick; varying vec3 vN; varying vec3 vV;
-  void main(){ vec3 p = position; float h = clamp((p.y + 1.0) * .5, 0.0, 1.0);
-    p.x += (sin(p.y * 3.0 - uTime * 3.0) * .035 + sin(uTime * 1.6) * .06 * h * h) * uWob;
-    p.z += cos(p.y * 2.6 - uTime * 2.4) * .02 * uWob;
-    p += normal * uThick;
-    vec4 mv = modelViewMatrix * vec4(p, 1.0); vV = -mv.xyz; vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * mv; }`;
-// sombreado plano por bandas (cel shading), sombra fría y borde de luz con el color del capítulo
-const TOON = `uniform vec3 uTint; uniform float uOpacity; varying vec3 vN; varying vec3 vV;
-  void main(){ vec3 n = normalize(vN); float d = dot(n, normalize(vec3(-.45, .7, .6)));
-    float rim = 1.0 - abs(dot(n, normalize(vV)));
-    vec3 base = mix(vec3(.93), vec3(1.0), smoothstep(-.3, .5, d)) + rim * .15;
-    base = mix(base, uTint, smoothstep(.55, 1.0, rim) * .5);
-    gl_FragColor = vec4(base, uOpacity); }`;
-const LINE = `uniform float uOpacity; void main(){ gl_FragColor = vec4(.04, .04, .07, uOpacity); }`;
-function part(geo, wob = .6, thick = .028) {
-  const g = new THREE.Group();
-  g.add(new THREE.Mesh(geo, new THREE.ShaderMaterial({ uniforms: { ...U, uWob: { value: wob }, uThick: { value: 0 } }, vertexShader: VERT, fragmentShader: TOON, transparent: true })));
-  return g;
-}
-const ghost = new THREE.Group(), rig = new THREE.Group();
-ghost.add(rig); scene.add(ghost);
-// cuerpo redondito
-const prof = [[0, -1], [.46, -.97], [.73, -.83], [.89, -.57], [.95, -.22], [.92, .14], [.82, .45], [.64, .72], [.4, .9], [.16, .99], [0, 1.01]].map(([x, y]) => new THREE.Vector2(x, y));
-rig.add(part(new THREE.LatheGeometry(prof, 64), .5, .045));
-const flameGeo = (r, h) => new THREE.LatheGeometry([[0, 0], [r * .8, h * .08], [r, h * .25], [r * .85, h * .5], [r * .5, h * .75], [r * .18, h * .93], [0, h]].map(([x, y]) => new THREE.Vector2(x, y)), 20);
-// tres llamitas en la cabeza (se balancean con muelle)
-const tufts = [[-.36, .86, .5, .5], [0, 1.0, 0, .66], [.36, .86, -.5, .5]].map(([x, y, rz, h]) => {
-  const pv = new THREE.Group(); pv.position.set(x, y, .05); pv.rotation.z = rz;
-  const c = part(flameGeo(.19, h), 1.4, .03); c.position.y = -.04; pv.add(c); rig.add(pv);
-  return pv;
-});
-// cola de llama
-const tail = new THREE.Group(); tail.position.set(.2, -.55, -.7); tail.rotation.set(-1.0, 0, -.5);
-const tc = part(flameGeo(.26, .95), 1.6, .03); tc.position.y = -.05; tail.add(tc); rig.add(tail);
-// patitas
-for (const s of [-1, 1]) { const f = part(new THREE.SphereGeometry(.2, 20, 14), 0, .03); f.scale.set(1.3, .7, 1.5); f.position.set(s * .42, -.98, .18); rig.add(f); }
-// bracitos con manita de tres dedos redondeados
-const arms = [-1, 1].map((s) => {
-  const g = new THREE.Group(); g.position.set(s * .8, -.12, .05);
-  const arm = part(new THREE.CapsuleGeometry(.12, .28, 8, 16), .3, .028); arm.rotation.z = PI2; arm.position.x = s * .22; g.add(arm);
-  const hand = part(new THREE.SphereGeometry(.15, 20, 16), 0, .028); hand.scale.set(1, .9, .85); hand.position.x = s * .5; g.add(hand);
-  [[.1, .4], [.13, 0], [.1, -.4]].forEach(([len, ang], k) => {
-    const fg = part(new THREE.CapsuleGeometry(.045, len, 6, 10), 0, .018);
-    fg.rotation.z = -s * PI2 + ang * s; fg.position.set(s * (.62 + Math.cos(ang) * .02), Math.sin(ang) * .1, .02 + (k === 1 ? .02 : 0)); g.add(fg);
-  });
-  const th = part(new THREE.CapsuleGeometry(.04, .07, 6, 10), 0, .018); th.rotation.set(.9, 0, -s * .4); th.position.set(s * .5, .1, .12); g.add(th);
-  rig.add(g); return g;
-});
-// cara: textura de canvas sobre un trozo de cilindro que abraza la barriga
-const faceCv = document.createElement('canvas'); faceCv.width = 512; faceCv.height = 340;
-const fctx = faceCv.getContext('2d');
-const faceTex = new THREE.CanvasTexture(faceCv); faceTex.colorSpace = THREE.SRGBColorSpace; faceTex.anisotropy = 4;
-const face = new THREE.Mesh(new THREE.CylinderGeometry(.955, .955, .86, 40, 1, true, -.82, 1.64), new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, depthWrite: false }));
-face.position.y = .02; rig.add(face);
-// brillo
-const gc = document.createElement('canvas'); gc.width = gc.height = 128;
-const gx = gc.getContext('2d'), grad = gx.createRadialGradient(64, 64, 0, 64, 64, 64);
-grad.addColorStop(0, 'rgba(255,255,255,.7)'); grad.addColorStop(.3, 'rgba(255,255,255,.22)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
-gx.fillStyle = grad; gx.fillRect(0, 0, 128, 128);
-const glowMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(gc), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
-const glow = new THREE.Sprite(glowMat); glow.scale.set(4.6, 4.6, 1); glow.position.set(0, 0, -.9); ghost.add(glow);
-// polvo de estrellas de fondo (sutil)
-const SD = 320, sd = new Float32Array(SD * 3);
-for (let i = 0; i < SD; i++) { sd[i * 3] = (Math.random() - .5) * 26; sd[i * 3 + 1] = (Math.random() - .5) * 16; sd[i * 3 + 2] = -4 - Math.random() * 8; }
-const dustG = new THREE.BufferGeometry(); dustG.setAttribute('position', new THREE.BufferAttribute(sd, 3));
-const dust = new THREE.Points(dustG, new THREE.PointsMaterial({ size: .035, color: 0xffffff, transparent: true, opacity: .35, depthWrite: false }));
-scene.add(dust);
-// brasas
-const N = 70, emb = new Float32Array(N * 3), embV = [];
-for (let i = 0; i < N; i++) { emb[i * 3] = (Math.random() - .5) * 1.4; emb[i * 3 + 1] = Math.random() * 3 - 1; emb[i * 3 + 2] = (Math.random() - .5) * .8; embV.push(.2 + Math.random() * .5); }
-const embG = new THREE.BufferGeometry(); embG.setAttribute('position', new THREE.BufferAttribute(emb, 3));
-const embMat = new THREE.PointsMaterial({ size: .05, color: 0xffffff, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false });
-ghost.add(new THREE.Points(embG, embMat));
+// fondo de estrellas (se dibuja una vez)
+const sky = $('#sky'), sc = sky.getContext('2d');
+function drawSky() { sky.width = innerWidth; sky.height = innerHeight * 1.4; for (let i = 0; i < 260; i++) { sc.fillStyle = `rgba(255,255,255,${.1 + Math.random() * .45})`; sc.beginPath(); sc.arc(Math.random() * sky.width, Math.random() * sky.height, Math.random() * 1.1 + .2, 0, 7); sc.fill(); } }
+drawSky(); addEventListener('resize', drawSky);
 
-/* ---------- cara paramétrica: ojos y boca se transforman de forma continua (cada frame) ---------- */
-const INK = '#050505';
-// ojo: in = altura esquina interior, out = esquina exterior, up/lo = curvas de párpados, open = apertura
-// boca: w = ancho, cy = altura de las comisuras, up/lo = curvas, teeth = dientes (0-1)
+/* ---------- cara paramétrica: ojos y boca se transforman de forma continua ---------- */
 const P = (o) => ({ in: 24, out: -30, up: -26, lo: 30, open: 1, w: 132, cy: -24, mup: 20, mlo: 96, teeth: 1, ...o });
 const CARAS = {
   malvado: P({}),
@@ -124,59 +73,51 @@ const CARAS = {
   asustado: P({ in: -8, out: -8, up: -50, lo: 44, w: 92, cy: 14, mup: -6, mlo: 34, teeth: 1 }),
   aburrido: P({ in: 0, out: 0, up: -2, lo: 30, w: 60, cy: 12, mup: 10, mlo: 14, teeth: 0 }),
   lengua: P({ in: 12, out: 12, up: -40, lo: -6, w: 110, cy: -18, mup: 16, mlo: 80, teeth: .4 }),
-  guino: P({}), amor: P({}), mareado: P({}), estrellas: P({}), muerto: P({}), neutro: P({ in: 0, out: 0, up: -40, lo: 40, w: 60, cy: 10, mup: 8, mlo: 14, teeth: 0 }),
+  guino: P({}), amor: P({}), mareado: P({}), estrellas: P({}), muerto: P({}),
+  neutro: P({ in: 0, out: 0, up: -40, lo: 40, w: 60, cy: 10, mup: 8, mlo: 14, teeth: 0 }),
 };
-const GLYPHS = { amor: 'corazon', mareado: 'espiral', estrellas: 'estrella', muerto: 'x' };
+const GLYPHS = { amor: 'M0 34 C-66 -6 -28 -50 0 -16 C28 -50 66 -6 0 34 Z', muerto: 'M-30 -22 L-22 -30 L0 -8 L22 -30 L30 -22 L8 0 L30 22 L22 30 L0 8 L-22 30 L-30 22 L-8 0 Z',
+  estrellas: (() => { let d = ''; for (let i = 0; i < 10; i++) { const r = i % 2 ? 18 : 44, a = -Math.PI / 2 + i * Math.PI / 5; d += `${i ? 'L' : 'M'}${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`; } return d + 'Z'; })() };
 const F = { ...CARAS.malvado, blink: 0, wink: 0, look: 0, lookY: 0, talk: 0, glyph: '' };
-let T = { ...CARAS.malvado }, faceName = 'malvado';
-function cara(n) { faceName = CARAS[n] ? n : 'malvado'; T = { ...CARAS[faceName] }; F.glyph = GLYPHS[faceName] || ''; T.wink = faceName === 'guino' ? 1 : 0; if (faceName === 'lengua') T.tongue = 1; else T.tongue = 0; }
-let faceTimer;
+let T = { ...CARAS.malvado, wink: 0 }, faceTimer, talkUntil = 0;
+function cara(n) { const k = CARAS[n] ? n : 'malvado'; T = { ...CARAS[k], wink: k === 'guino' ? 1 : 0 }; F.glyph = k === 'mareado' ? 'spiral' : GLYPHS[k] || ''; }
 function caraUn(n, ms = 2600) { cara(n); clearTimeout(faceTimer); faceTimer = setTimeout(() => cara('malvado'), ms); }
-function eye(side) {
-  const c = fctx; c.save(); c.translate(256 + side * 98 + F.look * 8, 112 + F.lookY * 5); c.scale(side * 1.12, 1.12); c.fillStyle = c.strokeStyle = INK;
-  if (F.glyph) {
-    c.lineWidth = 14; c.lineCap = c.lineJoin = 'round'; c.beginPath(); const g = F.glyph;
-    if (g === 'corazon') { c.moveTo(0, 34); c.bezierCurveTo(-66, -6, -28, -50, 0, -16); c.bezierCurveTo(28, -50, 66, -6, 0, 34); c.fill(); }
-    else if (g === 'x') { c.moveTo(-28, -28); c.lineTo(28, 28); c.moveTo(28, -28); c.lineTo(-28, 28); c.stroke(); }
-    else if (g === 'espiral') { c.lineWidth = 8; for (let a = 0; a < 16; a += .2) { const r = a * 2.4; c.lineTo(Math.cos(a + performance.now() / 300 * side) * r, Math.sin(a + performance.now() / 300 * side) * r); } c.stroke(); }
-    else { for (let i = 0; i < 10; i++) { const r = i % 2 ? 18 : 44, a = -Math.PI / 2 + i * Math.PI / 5; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); c.fill(); }
-    c.restore(); return;
-  }
-  const open = F.open * (1 - F.blink) * (side === 1 ? 1 - F.wink : 1);
-  const mid = (F.in + F.out) / 2, up = mid + (F.up - mid) * Math.max(open, .04), lo = mid + (F.lo - mid) * Math.max(open, .04);
-  c.beginPath(); c.moveTo(-50, F.in); c.quadraticCurveTo(0, up * 1.25 - mid * .25, 50, F.out); c.quadraticCurveTo(0, lo * 1.25 - mid * .25, -50, F.in); c.closePath();
-  c.lineWidth = 10; c.lineJoin = 'round'; c.fill(); c.stroke();
-  if (open > .45) { c.globalAlpha = (open - .45) / .55 * .9; c.fillStyle = '#fff'; c.beginPath(); c.ellipse(16 + F.look * 6 * side, mid - 6, 5.5, 4, -.5, 0, 7); c.fill(); c.globalAlpha = 1; }
-  c.restore();
+const f1 = (n) => n.toFixed(1);
+function eyePath(side, now) {
+  if (F.glyph === 'spiral') { let d = ''; for (let a = 0; a < 16; a += .25) { const r = a * 2.6, b = a + now / 260 * side; d += `${a ? 'L' : 'M'}${f1(Math.cos(b) * r)} ${f1(Math.sin(b) * r)}`; } return d; }
+  if (F.glyph) return F.glyph;
+  const open = Math.max(F.open * (1 - F.blink) * (side === 1 ? 1 - F.wink : 1), .05);
+  const mid = (F.in + F.out) / 2, up = mid + (F.up - mid) * open, lo = mid + (F.lo - mid) * open;
+  return `M-50 ${f1(F.in)} Q0 ${f1(up * 1.25 - mid * .25)} 50 ${f1(F.out)} Q0 ${f1(lo * 1.25 - mid * .25)} -50 ${f1(F.in)} Z`;
 }
-function mouth() {
-  const c = fctx; c.save(); c.translate(256 + F.look * 6, 226 + F.lookY * 3); c.fillStyle = INK;
-  const w = F.w, cy = F.cy, upY = cy + (F.mup - cy) * 2 - cy * 0, talk = F.talk;
-  const lo = F.mlo + talk * 26, top = F.mup - talk * 4;
-  c.beginPath(); c.moveTo(-w, cy); c.quadraticCurveTo(0, lo * 2 - cy, w, cy); c.quadraticCurveTo(0, top * 2 - cy, -w, cy); c.closePath(); c.fill();
-  c.lineWidth = 8; c.lineJoin = 'round'; c.strokeStyle = INK; c.stroke();
-  if (F.teeth > .05 && w > 50) {
-    c.save(); c.clip(); c.fillStyle = '#fff'; c.globalAlpha = Math.min(1, F.teeth);
-    const n = Math.max(3, Math.round(w / 17)), step = (w * 2 * .86) / n, x0 = -w * .86, th = 18 + F.teeth * 6;
-    c.beginPath();
-    for (let i = 0; i < n; i++) { const x = x0 + i * step, tt = (x + step / 2) / w, y = cy + (top * 2 - cy - cy) * (1 - tt * tt) * .5 + cy * 0; c.moveTo(x, y - 4); c.lineTo(x + step / 2, y + th); c.lineTo(x + step, y - 4); }
-    c.fill(); c.restore();
+function drawFace(now) {
+  for (const [p, side] of [[eyeL, -1], [eyeR, 1]]) {
+    p.setAttribute('d', eyePath(side, now));
+    p.setAttribute('transform', `translate(${f1(200 + side * 46 + F.look * 5)} ${f1(198 + F.lookY * 3)}) scale(${side * .5} .5)`);
+    p.setAttribute('fill', F.glyph === 'spiral' ? 'none' : '#121212'); p.setAttribute('stroke', '#121212'); p.setAttribute('stroke-width', F.glyph === 'spiral' ? 12 : 8); p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
   }
-  if (F.tongue > .05) { c.fillStyle = `rgba(210,210,210,${F.tongue})`; c.beginPath(); c.ellipse(w * .25, (cy + lo) / 2 + 10, 26, 18, 0, 0, 7); c.fill(); }
-  c.restore();
+  const openE = F.open * (1 - F.blink);
+  for (const [p, side] of [[pupL, -1], [pupR, 1]]) {
+    const mid = (F.in + F.out) / 2;
+    p.setAttribute('cx', f1(200 + side * 46 + F.look * 9)); p.setAttribute('cy', f1(198 + mid * .5 + F.lookY * 4));
+    p.setAttribute('opacity', F.glyph || openE * (side === 1 ? 1 - F.wink : 1) < .35 ? 0 : 1);
+  }
+  const w = F.w, cy = F.cy, lo = F.mlo + F.talk * 26, top = F.mup - F.talk * 4;
+  const tr = `translate(${f1(200 + F.look * 3)} ${f1(258 + F.lookY * 2)}) scale(.5)`;
+  mouthP.setAttribute('d', `M${f1(-w)} ${f1(cy)} Q0 ${f1(lo * 2 - cy)} ${f1(w)} ${f1(cy)} Q0 ${f1(top * 2 - cy)} ${f1(-w)} ${f1(cy)} Z`);
+  mouthP.setAttribute('transform', tr); mouthP.setAttribute('stroke', '#101010'); mouthP.setAttribute('stroke-width', 9); mouthP.setAttribute('stroke-linejoin', 'round');
+  let fd = '';
+  if (F.teeth > .05 && w > 50) for (const sx of [-1, 1]) { const x = sx * w * .42, tt = x / w, y = cy + (top * 2 - 2 * cy) * (1 - tt * tt) * .5; fd += `M${f1(x - 15)} ${f1(y - 4)} L${f1(x + sx * 2)} ${f1(y + 28 + F.teeth * 6)} L${f1(x + 15)} ${f1(y - 4)} Z`; }
+  fangsP.setAttribute('d', fd); fangsP.setAttribute('transform', tr); fangsP.setAttribute('opacity', Math.min(1, F.teeth));
 }
-F.tongue = 0; T.tongue = 0;
-let faceDirty = true;
-function drawFace() { fctx.clearRect(0, 0, 512, 340); eye(-1); eye(1); mouth(); faceTex.needsUpdate = true; }
-const FACE_KEYS = ['in', 'out', 'up', 'lo', 'open', 'w', 'cy', 'mup', 'mlo', 'teeth', 'wink', 'tongue'];
+const FACE_KEYS = ['in', 'out', 'up', 'lo', 'open', 'w', 'cy', 'mup', 'mlo', 'teeth', 'wink'];
 function tweenFace(dt, now) {
-  const k = 1 - Math.exp(-dt * 14); let moving = false;
-  for (const key of FACE_KEYS) { const d = (T[key] ?? 0) - F[key]; if (Math.abs(d) > .01) { F[key] += d * k; moving = true; } }
+  const k = 1 - Math.exp(-dt * 14);
+  for (const key of FACE_KEYS) F[key] += ((T[key] ?? 0) - F[key]) * k;
   const talkT = bubble.classList.contains('show') && now < talkUntil ? (.5 + .5 * Math.sin(now / 55)) * (.6 + .4 * Math.sin(now / 130)) : 0;
-  if (Math.abs(talkT - F.talk) > .01) { F.talk += (talkT - F.talk) * Math.min(1, dt * 30); moving = true; }
-  if (moving || faceDirty || F.glyph === 'espiral') { drawFace(); faceDirty = false; }
+  F.talk += (talkT - F.talk) * Math.min(1, dt * 30);
+  drawFace(now);
 }
-let talkUntil = 0;
 
 /* ---------- animaciones: funciones de p (0..1) que suman sobre la pose ---------- */
 const S = Math.sin, PI = Math.PI;
@@ -223,10 +164,7 @@ function anim(name) {
 
 /* ---------- efectos sobre la página ---------- */
 const fx = $('#fx');
-function screenPos(dx = 0, dy = 0) {
-  const v = new THREE.Vector3(dx, dy, 0); ghost.localToWorld(v); v.project(camera);
-  return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
-}
+function screenPos(dx = 0, dy = 0) { return { x: G.x + dx * G.u, y: G.y - dy * G.u }; }
 const GLYPH = { corazones: '♥', estrellas: '★', interrogacion: '?', exclamacion: '!', zzz: 'z', chispas: '✦' };
 function efecto(kind, texto) {
   if (reduced && kind !== 'texto') return;
@@ -253,9 +191,9 @@ let bubbleUntil = 0;
 function decir(t, ms = 3200) { talkUntil = performance.now() + Math.min(String(t).length * 55, 4000); bubble.textContent = String(t).slice(0, 140); bubble.classList.add('show'); bubbleUntil = performance.now() + Math.min(Math.max(ms, 1500), 8000); }
 
 /* ---------- tono ---------- */
-const tint = new THREE.Color('#ffffff'), tintTarget = new THREE.Color('#ffffff');
-let tintOverride = null, tintOverrideUntil = 0;
-function color(hex, ms = 3500) { try { tintOverride = new THREE.Color(hex); tintOverrideUntil = performance.now() + ms; } catch {} }
+const hex2 = (h) => { const n = parseInt(String(h).replace('#', '').padEnd(6, 'f').slice(0, 6), 16); return isNaN(n) ? [255, 255, 255] : [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+let tint = [255, 255, 255], tintTarget = [255, 255, 255], tintOverride = null, tintOverrideUntil = 0;
+function color(h, ms = 3500) { tintOverride = hex2(h); tintOverrideUntil = performance.now() + ms; }
 
 /* ---------- memes = combinaciones ---------- */
 const MEMES = {
@@ -383,7 +321,7 @@ function enterChapter(el) {
   if (currentEl === el) return;
   reveal(el);
   currentEl = el; currentSection = el.dataset.project != null ? 'proyecto' : el.id;
-  tintTarget.set(el.dataset.tint || '#ffffff');
+  tintTarget = hex2(el.dataset.tint || '#ffffff');
   document.querySelectorAll('.dots a').forEach((d) => d.classList.toggle('on', d.dataset.id === el.id));
   if (seen.has(el.id)) return;
   seen.add(el.id);
@@ -409,64 +347,60 @@ function buildDots() {
    ========================================================= */
 const ptr = { x: 0, y: 0 };
 addEventListener('pointermove', (e) => { ptr.x = e.clientX / innerWidth * 2 - 1; ptr.y = e.clientY / innerHeight * 2 - 1; poke(); }, { passive: true });
-function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
-addEventListener('resize', resize); resize();
 const prog = document.createElement('div'); prog.className = 'progress'; document.body.appendChild(prog);
-const pos = new THREE.Vector3(), target = new THREE.Vector3();
-let baseScale = 1, blinkAt = performance.now() + 2500, firstFrame = true;
+const G = { x: innerWidth * .7, y: innerHeight * .5, size: 400, u: 140 };
+const target = { x: 0, y: 0, size: 400 };
+let blinkAt = performance.now() + 2500, first = true, prevX = 0, prevY = 0, sprX = 0, sprY = 0, lastNow = 0, dt = .016;
 function poseTarget() {
-  const visH = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z, visW = visH * camera.aspect;
-  const pose = currentEl?.dataset.pose || 'hero';
-  if (mobile()) { target.set(0, visH * .2, 0); baseScale = Math.min(1, visW / 4.4) * .85; }
-  else if (pose === 'center') { target.set(0, visH * .2, 0); baseScale = .62; }
-  else { target.set(visW * (pose === 'hero' ? .2 : .18), -.1, 0); baseScale = 1; }
+  const pose = currentEl?.dataset.pose || 'hero', W = innerWidth, H = innerHeight;
+  if (mobile()) Object.assign(target, { x: W * .5, y: H * .27, size: Math.min(W * .62, H * .36) });
+  else if (pose === 'center') Object.assign(target, { x: W * .5, y: H * .3, size: Math.min(H * .36, 320) });
+  else Object.assign(target, { x: W * (pose === 'hero' ? .7 : .7), y: H * .5, size: Math.min(H * .58, 520) });
 }
-let prevX = 0, prevY = 0, sprX = 0, sprY = 0, lastNow = 0, dt = .016;
+const D = 180 / Math.PI;
 function frame(now) {
   requestAnimationFrame(frame);
   const t = now / 1000; dt = Math.min((now - lastNow) / 1000, .05); lastNow = now;
-  U.uTime.value = t;
-  poseTarget(); if (firstFrame) { pos.copy(target); firstFrame = false; } else pos.lerp(target, .05);
+  poseTarget();
+  const k = first ? 1 : 1 - Math.exp(-dt * 3.2); first = false;
+  G.x += (target.x - G.x) * k; G.y += (target.y - G.y) * k; G.size += (target.size - G.size) * k; G.u = G.size * .36;
   const br = S(t * 1.9);
-  const A = { x: 0, y: S(t * 1.4) * .09, z: 0, rx: 0, ry: 0, rz: S(t * .8) * .035, s: 1, sx: 1 - br * .012, sy: 1 + br * .02, armL: S(t * 2.2) * .12, armR: S(t * 2.2 + 1) * .12, op: 1 };
+  const A = { x: 0, y: S(t * 1.4) * .09, rx: 0, ry: 0, rz: S(t * .8) * .035, s: 1, sx: 1 - br * .012, sy: 1 + br * .02, armL: S(t * 2.2) * .12, armR: S(t * 2.2 + 1) * .12, op: 1 };
   for (let i = active.length - 1; i >= 0; i--) { const a = active[i], p = (now - a.t0) / a.dur; if (p >= 1) { active.splice(i, 1); continue; } a.fn(p, A); }
-  ghost.position.set(pos.x + A.x, pos.y + A.y, A.z);
-  const sc = baseScale * A.s; ghost.scale.set(sc * A.sx, sc * A.sy, sc);
-  rig.rotation.set(A.rx + ptr.y * .12, A.ry + ptr.x * .35, A.rz);
-  arms[0].rotation.z = .5 - A.armL; arms[1].rotation.z = -.5 + A.armR;
-  // movimiento secundario: las llamitas y la cola se retrasan como un muelle
-  const vx = (ghost.position.x - prevX) / Math.max(dt, .001), vy = (ghost.position.y - prevY) / Math.max(dt, .001); prevX = ghost.position.x; prevY = ghost.position.y;
-  sprX += (THREE.MathUtils.clamp(-vx * .08, -.6, .6) - sprX) * .12; sprY += (THREE.MathUtils.clamp(-vy * .06, -.4, .4) - sprY) * .12;
-  tufts.forEach((tf, i) => { tf.rotation.z = [.5, 0, -.5][i] + sprX + S(t * 3 + i) * .06; tf.scale.y = 1 + sprY * .5 + S(t * 4 + i * 2) * .04; });
-  tail.rotation.z = -.5 + sprX * .8 + S(t * 2.4) * .15; tail.rotation.x = -1 + sprY * .6;
-  U.uOpacity.value = A.op; glowMat.opacity = .75 * A.op; embMat.opacity = .7 * A.op; face.material.opacity = A.op;
-  tint.lerp(tintOverride && now < tintOverrideUntil ? tintOverride : tintTarget, .06);
-  U.uTint.value.copy(tint); glowMat.color.copy(tint); embMat.color.copy(tint);
+  const cx = G.x + A.x * G.u, cy = G.y - A.y * G.u;
+  const turn = Math.cos(A.ry + ptr.x * .25), rot = (A.rz + A.rx) * D + ptr.x * 3;
+  stage.style.width = stage.style.height = `${G.size}px`;
+  stage.style.transform = `translate(${cx - G.size / 2}px, ${cy - G.size / 2}px) rotate(${rot}deg) scale(${A.s * A.sx * turn}, ${A.s * A.sy})`;
+  stage.style.opacity = A.op;
+  gFace.style.opacity = turn < .15 ? 0 : 1;
+  armL.setAttribute('transform', `rotate(${(-A.armL * .55) * D} ${PIV.armL[0]} ${PIV.armL[1]})`);
+  armR.setAttribute('transform', `rotate(${(A.armR * .55) * D} ${PIV.armR[0]} ${PIV.armR[1]})`);
+  const kick = S(t * 2.6) * 3, air = Math.min(1, Math.max(0, A.y - .15) * 2);
+  footL.setAttribute('transform', `translate(${f1(-air * 6)} ${f1(kick - air * 10)})`);
+  footR.setAttribute('transform', `translate(${f1(air * 6)} ${f1(-kick - air * 10)})`);
+  // movimiento secundario tipo muelle en orejas
+  const vx = (cx - prevX) / Math.max(dt, .001), vy = (cy - prevY) / Math.max(dt, .001); prevX = cx; prevY = cy;
+  sprX += (Math.max(-1, Math.min(1, -vx / 900)) - sprX) * .1; sprY += (Math.max(-1, Math.min(1, vy / 900)) - sprY) * .1;
+  tufts.forEach((tf, i) => { const [px, py] = PIV.tf[i]; tf.setAttribute('transform', `rotate(${f1((sprX * 18 + S(t * 2.3 + i * 1.7) * 3 + (i ? 1 : -1) * Math.max(0, -sprY) * 12))} ${px} ${py}) translate(${px} ${py}) scale(1 ${f1(1 + sprY * .25 + S(t * 4 + i * 2) * .05)}) translate(${-px} ${-py})`); });
+  tint = tint.map((c, i) => c + ((tintOverride && now < tintOverrideUntil ? tintOverride : tintTarget)[i] - c) * .06);
+  const mix = tint.map((c) => Math.round(255 - (255 - c) * .55));
+  gSil.setAttribute('fill', `rgb(${mix.join(',')})`);
   F.look += (ptr.x - F.look) * .1; F.lookY += (ptr.y - F.lookY) * .1;
   const bp = (now - blinkAt) / 150; F.blink = bp > 0 && bp < 1 ? Math.sin(bp * Math.PI) : 0;
   if (bp >= 1) blinkAt = now + 2200 + Math.random() * 3200;
   tweenFace(dt, now);
-  const pa = embG.attributes.position;
-  for (let i = 0; i < N; i++) { let y = pa.getY(i) + embV[i] * .012; if (y > 2.2) y = -.6; pa.setY(i, y); pa.setX(i, pa.getX(i) + S(t * 2 + i) * .002); }
-  pa.needsUpdate = true;
   if (bubble.classList.contains('show')) {
     if (now > bubbleUntil) bubble.classList.remove('show');
-    const o = screenPos(.6, mobile() ? 2.1 : 1.6), w = bubble.offsetWidth;
+    const o = screenPos(.55, mobile() ? 1.7 : 1.45), w = bubble.offsetWidth;
     bubble.style.left = `${Math.min(Math.max(o.x, 12), innerWidth - w - 12)}px`; bubble.style.top = `${Math.max(o.y - bubble.offsetHeight, 70)}px`;
   }
-  dust.rotation.y = t * .01 + ptr.x * .04; dust.rotation.x = ptr.y * .03; dust.position.y = scrollY * .0008;
+  sky.style.transform = `translate(${ptr.x * -8}px, ${-scrollY * .05 + ptr.y * -6}px)`;
   prog.style.transform = `scaleX(${scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight)})`;
-  renderer.render(scene, camera);
 }
 requestAnimationFrame(frame);
 
 /* ---------- interacción ---------- */
-const ray = new THREE.Raycaster();
-document.addEventListener('click', (e) => {
-  if (e.target.closest('a,button,input,img,form')) return;
-  ray.setFromCamera(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
-  if (ray.intersectObject(rig, true).length) think('clic', {}, 3000);
-});
+stage.addEventListener('click', () => think('clic', {}, 3000));
 $('#chat').addEventListener('submit', (e) => {
   e.preventDefault();
   const v = $('#chatIn').value.trim(); if (!v) return;

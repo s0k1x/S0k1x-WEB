@@ -20,7 +20,7 @@ Todo en **`projects.json`**: el orden de la lista es el orden en la web.
 El email está en `main.js` (`CONFIG.email`) y en `index.html` (botones de contacto).
 
 ## El fantasma (3D + IA)
-- Modelo 3D hecho por código con Three.js (sin archivos de modelo): llama blanca con brillo, cara dibujada en textura.
+- Silueta vectorial 2D (SVG) con resplandor difuso, sin librerías ni archivos de modelo. Orejas, brazos y patitas animados; ojos y boca paramétricos que se transforman cada frame.
 - 18 caras × 23 animaciones × efectos × memes (67, stonks, nope...), combinables.
 - Lo controla Gemini a través de la Edge Function `fantasma` de Supabase (`supabase/functions/fantasma`).
   La web le cuenta qué pasa (entra en una sección, mira un proyecto, pulsan el fantasma, escriben en el chat, se queda quieto)
