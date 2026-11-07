@@ -1,0 +1,53 @@
+{
+  "_ayuda": [
+    "Este archivo decide qué proyectos salen en la web y en qué orden (el orden de la lista).",
+    "mostrar: true para que salga, false para ocultarlo.",
+    "repo: el nombre del repositorio en GitHub. Si es público, la web saca sola el lenguaje, la fecha y las estrellas.",
+    "privado: true si el repo es privado. No se enseña el código: solo el botón a la web (campo web).",
+    "nombre: el título que se ve (si no lo pones, se usa el nombre del repo).",
+    "web: enlace a la web del proyecto (opcional en los públicos, necesario en los privados).",
+    "descripcion y frase: el texto del proyecto y lo que dice tu avatar.",
+    "imagenes: rutas a capturas o fotos, por ejemplo assets/proyectos/aura-x/1.png. Sin imágenes se usa una portada generada.",
+    "enlaces: referencias extra, cada una con texto y url (Figma, vídeo, artículo...).",
+    "mostrarOtrosPublicos: true para añadir al final cualquier repo público que no esté en la lista."
+  ],
+  "mostrarOtrosPublicos": false,
+  "proyectos": [
+    {
+      "repo": "s0k1x-skill",
+      "mostrar": true,
+      "descripcion": "Kit de 35 skills y 3 agentes para Claude Code: diseño web, escritura, ahorro de tokens e ingeniería, coordinados entre sí.",
+      "frase": "Mi niño mimado. Lo uso todos los días.",
+      "imagenes": [],
+      "enlaces": []
+    },
+    {
+      "repo": "S0k1x-WEB",
+      "mostrar": true,
+      "descripcion": "Esta web. HTML, CSS y JavaScript sin dependencias, con mi avatar dentro.",
+      "frase": "Estás dentro de este proyecto ahora mismo.",
+      "imagenes": [],
+      "enlaces": []
+    },
+    { "repo": "Aura-X", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "aurevixweb-web", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "prueba-repositorio-airama", "nombre": "Airama", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "Roblox-automatico", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "s0k1x-toolkit-kali-linux", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "kreskolab", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "Malaga-reventa", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "PEQUE-m", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "fran-taser", "mostrar": true, "imagenes": [], "enlaces": [] },
+    { "repo": "IA-PRUEBA", "mostrar": false, "imagenes": [], "enlaces": [] },
+    { "repo": "anita_repositorio", "mostrar": false, "imagenes": [], "enlaces": [] },
+    {
+      "nombre": "Ejemplo de proyecto privado",
+      "privado": true,
+      "mostrar": false,
+      "web": "https://ejemplo.example",
+      "descripcion": "Cambia este bloque por tu proyecto privado y pon mostrar en true.",
+      "imagenes": [],
+      "enlaces": [{ "texto": "Presentación", "url": "https://ejemplo.example/presentacion" }]
+    }
+  ]
+}
