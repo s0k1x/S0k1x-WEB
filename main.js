@@ -34,12 +34,12 @@ stage.innerHTML = `<svg viewBox="0 0 400 420" aria-hidden="true">
   </defs>
   <g id="gBody">
     <g id="gSil" filter="url(#glow)">
-      <g id="tf0" class="tf"><path d="M128 160 C122 126 116 88 112 46 C140 72 164 100 182 130 Z"/></g>
-      <g id="tf1" class="tf"><path d="M272 160 C278 126 284 88 288 46 C260 72 236 100 218 130 Z"/></g>
+      <g id="tf0" class="tf"><path d="M126 162 C120 120 112 80 102 34 C136 68 166 100 184 130 Z"/></g>
+      <g id="tf1" class="tf"><path d="M274 162 C280 120 288 80 298 34 C264 68 234 100 216 130 Z"/></g>
       <g id="footL"><ellipse cx="150" cy="352" rx="30" ry="19"/></g>
       <g id="footR"><ellipse cx="250" cy="352" rx="30" ry="19"/></g>
-      <g id="armL"><path d="M116 238 C90 230 66 214 54 190 C48 176 56 162 70 164 C82 166 90 176 100 186 C110 196 122 206 132 214 Z"/></g>
-      <g id="armR"><path d="M284 238 C310 230 334 214 346 190 C352 176 344 162 330 164 C318 166 310 176 300 186 C290 196 278 206 268 214 Z"/></g>
+      <g id="armL"><path d="M100 214 C98 236 72 246 54 236 C38 228 32 206 42 188 L40 156 L52 182 L58 140 L66 176 L80 148 L78 180 C92 186 102 198 100 214 Z"/></g>
+      <g id="armR"><path d="M300 214 C302 236 328 246 346 236 C362 228 368 206 358 188 L360 156 L348 182 L342 140 L334 176 L320 148 L322 180 C308 186 298 198 300 214 Z"/></g>
       <path id="body" transform="translate(200 230) scale(.95) translate(-200 -230)" d="M200 100 C260 100 304 142 310 204 C316 266 300 312 262 336 C240 350 220 354 200 354 C180 354 160 350 138 336 C100 312 84 266 90 204 C96 142 140 100 200 100 Z"/>
     </g>
     <g id="gFace" filter="url(#soft)">
@@ -51,7 +51,7 @@ const el = (id) => stage.querySelector('#' + id);
 const gBody = el('gBody'), gSil = el('gSil'), gFace = el('gFace'), armL = el('armL'), armR = el('armR');
 const eyeL = el('eyeL'), eyeR = el('eyeR'), mouthP = el('mouth'), fangsP = el('fangs');
 const tufts = [0, 1].map((i) => el('tf' + i)), footL = el('footL'), footR = el('footR'), pupL = el('pupL'), pupR = el('pupR');
-const PIV = { tf: [[150, 136], [250, 136]], armL: [122, 222], armR: [278, 222] };
+const PIV = { tf: [[150, 136], [250, 136]], armL: [70, 210], armR: [330, 210] };
 
 // fondo de estrellas (se dibuja una vez)
 const sky = $('#sky'), sc = sky.getContext('2d');
@@ -59,7 +59,7 @@ function drawSky() { sky.width = innerWidth; sky.height = innerHeight * 1.4; for
 drawSky(); addEventListener('resize', drawSky);
 
 /* ---------- cara paramétrica: ojos y boca se transforman de forma continua ---------- */
-const P = (o) => ({ in: 24, out: -30, up: -26, lo: 30, open: 1, w: 132, cy: -24, mup: 20, mlo: 96, teeth: 1, ...o });
+const P = (o) => ({ in: 28, out: -36, up: -20, lo: 24, open: 1, w: 146, cy: -30, mup: 18, mlo: 104, teeth: 1, ...o });
 const CARAS = {
   malvado: P({}),
   chulo: P({ in: 6, out: -18, up: -20, lo: 22, w: 104, cy: -10, mup: 14, mlo: 60 }),
@@ -373,8 +373,10 @@ function frame(now) {
   stage.style.transform = `translate(${cx - G.size / 2}px, ${cy - G.size / 2}px) rotate(${rot}deg) scale(${A.s * A.sx * turn}, ${A.s * A.sy})`;
   stage.style.opacity = A.op;
   gFace.style.opacity = turn < .15 ? 0 : 1;
-  armL.setAttribute('transform', `rotate(${(-A.armL * .55) * D} ${PIV.armL[0]} ${PIV.armL[1]})`);
-  armR.setAttribute('transform', `rotate(${(A.armR * .55) * D} ${PIV.armR[0]} ${PIV.armR[1]})`);
+  // manos flotando separadas del cuerpo, cada una con su propio vaivén
+  const hl = A.armL, hr = A.armR;
+  armL.setAttribute('transform', `translate(${f1(-10 - hl * 10 + S(t * 1.7) * 3)} ${f1(-hl * 34 + S(t * 2.1 + .6) * 7)}) rotate(${f1(-hl * 14 + S(t * 1.3) * 5)} ${PIV.armL[0]} ${PIV.armL[1]})`);
+  armR.setAttribute('transform', `translate(${f1(10 + hr * 10 + S(t * 1.6 + 2) * 3)} ${f1(-hr * 34 + S(t * 2.3 + 1.9) * 7)}) rotate(${f1(hr * 14 + S(t * 1.4 + 1) * 5)} ${PIV.armR[0]} ${PIV.armR[1]})`);
   const kick = S(t * 2.6) * 3, air = Math.min(1, Math.max(0, A.y - .15) * 2);
   footL.setAttribute('transform', `translate(${f1(-air * 6)} ${f1(kick - air * 10)})`);
   footR.setAttribute('transform', `translate(${f1(air * 6)} ${f1(-kick - air * 10)})`);
