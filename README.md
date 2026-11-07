@@ -1,21 +1,21 @@
 # S0k1x-WEB
 
-Portfolio personal de **s0k1x**. Minimalista por fuera; cada proyecto es un **mundo** propio por dentro.
+Portfolio de **s0k1x**: oscuro, minimalista y con mi avatar en línea fina.
 
-## Cómo funciona
-- **Home**: hero, lista de mundos (un proyecto por fila, con vista previa al pasar el ratón), sobre mí y contacto.
-- **Mundos**: al entrar en un proyecto se abre un portal a su mundo (Órbita, Bosque, Terminal, Océano, Neón, Desierto o Nieve). Cada uno tiene paisaje animado, colores, accesorio para el personaje y frases propias, y muestra el README del repo.
-- **mini-s0k1x**: personaje SVG que camina, te sigue con la mirada, saluda, salta, gira, baila, cuenta chistes y se duerme si no haces nada.
-- Navega entre mundos con ← → y sal con Esc. Easter egg: escribe `s0k1x`.
+## Secciones (una por pantalla)
+1. **Portada**: titular, avatar que te sigue con los ojos y saluda al pulsarlo, y una terminal que escribe sola.
+2. **Proyectos**: una ventana tipo app con todos mis repos públicos (se cargan solos de GitHub). Cada repo tiene su propia portada generada a partir de su nombre, su descripción (o la primera frase de su README) y un comentario de mi avatar.
+3. **s0k1x-skill**: mi kit para Claude Code, con una terminal que recorre las skills.
+4. **Herramientas**: diagrama con los logos reales de lo que uso.
+5. **Sobre mí** y **contacto**.
 
 ## Editar
-Todo en `CONFIG` al principio de `main.js`: email, textos, datos, redes, proyectos destacados (con su mundo) y repos ocultos.
-Los repos públicos se cargan solos desde la API de GitHub y reciben un mundo automáticamente.
+Todo en `CONFIG` al principio de `main.js`: email, descripciones y frases por repo, repos ocultos.
+El email también aparece en `index.html` (botones de contacto).
+
+Iconos: `assets/icons/` (SVG Logos CC0, Simple Icons CC0, VSCode Icons MIT; créditos en `icons-credits.json`).
 
 ## Local
 ```bash
 python3 -m http.server 8000
 ```
-
-## GitHub Pages
-Settings → Pages → Deploy from a branch → `main` / root.
