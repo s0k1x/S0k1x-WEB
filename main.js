@@ -1,382 +1,415 @@
+import * as THREE from 'three';
+
 /* =========================================================
-   CONFIG: edita aquí tus datos
+   CONFIG
    ========================================================= */
 const CONFIG = {
   github: 's0k1x',
-  email: 'hola@s0k1x.example', // ← pon tu email real (y en index.html)
-  // Los proyectos que salen se eligen en projects.json
+  email: 'hola@s0k1x.example',
+  brain: 'https://hkfowjpiciqvbylnibne.supabase.co/functions/v1/fantasma',
+  // clave pública (anon) de Supabase: es pública a propósito, no es la de Gemini
+  anon: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhrZm93anBpY2lxdmJ5bG5pYm5lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQwNzg4MjEsImV4cCI6MjEwOTY1NDgyMX0.vDTy6utoCi9ohoWYAXJBmi9tf6U92ucQkZG6ar5u0Kc',
 };
-
-let REPOS = [];
-const repoCount = () => REPOS.length || 11;
 const $ = (s, el = document) => el.querySelector(s);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const hash = (str) => { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
-const rng = (seed) => () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const mobile = () => innerWidth <= 820;
+const HUES = ['#ff9a6b', '#ff6b7a', '#6bffb0', '#6bb6ff', '#ffd36b', '#6bfff0', '#ff8ad8', '#b8ff6b', '#ffb36b'];
 
 /* =========================================================
-   Avatar en línea fina
+   Escena 3D: fantasma llama (geometría por código, sin modelos)
    ========================================================= */
-const HAIR = [[63, 74, 12], [68, 57, 14], [83, 45, 16], [101, 39, 17], [119, 43, 16], [133, 55, 14], [138, 73, 11], [79, 64, 12], [97, 59, 13], [115, 59, 13], [127, 67, 11], [104, 70, 6]];
-const MOUTH = { smile: 'M92 124 Q100 130 108 124', happy: 'M90 122 Q100 134 110 122', o: 'M96 125 a4 4.5 0 1 0 8 0 a4 4.5 0 1 0 -8 0', flat: 'M93 126 L107 126' };
-const avatars = [];
+const canvas = $('#scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setClearColor(0x000000, 1);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
+camera.position.set(0, 0, 9);
 
-function avatar(host, { ink = '#efefef', paper = '#161617', acc = '#ff7a45', sw = 2.6, hand = false } = {}) {
-  host.innerHTML = `<svg class="av" viewBox="0 0 200 220" fill="none" stroke="${ink}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <path d="M14 224 C18 182 58 166 100 166 C142 166 182 182 186 224 Z" fill="${ink}"/>
-  <path d="M46 184 L40 200 M154 184 L160 200" stroke="${acc}" stroke-width="${sw + .6}"/>
-  <g class="av-head">
-   <path d="M86 136 L86 168 L114 168 L114 136" fill="${paper}"/>
-   <path d="M84 166 Q100 182 116 166" fill="${paper}"/>
-   <path d="M58 98 C48 94 47 112 59 114 M142 98 C152 94 153 112 141 114" fill="${paper}"/>
-   <path d="M58 92 C58 56 78 40 100 40 C124 40 142 56 142 92 C142 124 124 146 100 146 C76 146 58 124 58 92 Z" fill="${paper}"/>
-   <g fill="${ink}" stroke="none">${HAIR.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('')}</g>
-   <path d="M78 52 q5 -4 10 0 M104 46 q5 -4 10 0 M120 58 q4 -3 8 1" stroke="${paper}" stroke-width="2" opacity=".6"/>
-   <g class="av-eyes" fill="${ink}" stroke="none"><circle cx="83" cy="96" r="3.2"/><circle cx="117" cy="96" r="3.2"/></g>
-   <path class="av-lids" d="M79 97 Q83 99 87 97 M113 97 Q117 99 121 97"/>
-   <rect x="69" y="84" width="27" height="21" rx="5"/><rect x="104" y="84" width="27" height="21" rx="5"/>
-   <path d="M96 92 Q100 89 104 92 M69 90 L58 89 M131 90 L142 89"/>
-   <g class="av-brows"><path d="M72 78 Q82 74 92 77 M108 77 Q118 74 128 78" stroke-width="${sw + 1}"/></g>
-   <path d="M101 102 Q104 112 97 114" stroke-width="${sw - .6}"/>
-   <path class="av-mouth" d="${MOUTH.smile}"/>
-  </g>
-  ${hand ? `<g class="av-hand"><rect x="154" y="200" width="24" height="26" fill="${paper}"/>
-   <rect x="151" y="148" width="8" height="36" rx="4" fill="${paper}"/><rect x="160" y="143" width="8" height="40" rx="4" fill="${paper}"/>
-   <rect x="169" y="146" width="8" height="38" rx="4" fill="${paper}"/><rect x="178" y="153" width="7" height="32" rx="3.5" fill="${paper}"/>
-   <rect x="139" y="178" width="8" height="26" rx="4" transform="rotate(-38 143 191)" fill="${paper}"/>
-   <rect x="150" y="174" width="35" height="34" rx="11" fill="${paper}"/></g>` : ''}
- </svg>`;
-  const svg = $('svg', host);
-  const a = { host, svg, eyes: $('.av-eyes', svg), head: $('.av-head', svg), mouth: $('.av-mouth', svg) };
-  a.mood = (m) => { a.mouth.setAttribute('d', MOUTH[m] || MOUTH.smile); svg.classList.toggle('happy', m === 'happy' || m === 'o'); };
-  avatars.push(a);
-  return a;
+const U = { uTime: { value: 0 }, uTint: { value: new THREE.Color('#ffffff') }, uOpacity: { value: 1 }, uWob: { value: 1 } };
+const bodyMat = new THREE.ShaderMaterial({
+  uniforms: U, transparent: true,
+  vertexShader: `uniform float uTime; uniform float uWob; varying vec3 vN; varying vec3 vV; varying float vY;
+    void main(){ vec3 p = position; float h = clamp((p.y + 1.0) / 2.8, 0.0, 1.0);
+      float w = sin(p.y * 3.0 - uTime * 3.2) * 0.06 * h * uWob + sin(p.x * 4.0 + uTime * 2.1) * 0.025 * uWob;
+      p.x += w + pow(h, 2.2) * sin(uTime * 1.7) * 0.32 * uWob; p.z += cos(p.y * 2.5 - uTime * 2.6) * 0.04 * h * uWob;
+      vY = h; vec4 mv = modelViewMatrix * vec4(p, 1.0); vV = -mv.xyz; vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform vec3 uTint; uniform float uOpacity; varying vec3 vN; varying vec3 vV; varying float vY;
+    void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.0);
+      vec3 c = mix(vec3(1.0), uTint, 0.35 + f * 0.65) + f * 0.25; c = mix(c, uTint, vY * 0.25);
+      gl_FragColor = vec4(c, uOpacity); }`,
+});
+const ghost = new THREE.Group(), rig = new THREE.Group();
+ghost.add(rig); scene.add(ghost);
+const prof = [[0, -1], [.34, -.96], [.6, -.8], [.76, -.52], [.81, -.18], [.77, .16], [.66, .48], [.5, .8], [.34, 1.1], [.2, 1.38], [.09, 1.62], [0, 1.82]].map(([x, y]) => new THREE.Vector2(x, y));
+rig.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 40), bodyMat));
+for (const s of [-1, 1]) { // cuernitos
+  const horn = new THREE.Mesh(new THREE.ConeGeometry(.11, .42, 14), bodyMat);
+  horn.position.set(s * .36, .74, .08); horn.rotation.z = -s * .55; rig.add(horn);
+}
+const arms = [-1, 1].map((s) => { // brazos de llama
+  const g = new THREE.Group(); g.position.set(s * .7, -.12, 0);
+  const m = new THREE.Mesh(new THREE.SphereGeometry(.15, 16, 12), bodyMat); m.scale.set(2.3, .85, .85); m.position.x = s * .26;
+  g.add(m); rig.add(g); return g;
+});
+// cara: textura de canvas sobre un trozo de cilindro que abraza el cuerpo
+const faceCv = document.createElement('canvas'); faceCv.width = 512; faceCv.height = 340;
+const fctx = faceCv.getContext('2d');
+const faceTex = new THREE.CanvasTexture(faceCv); faceTex.colorSpace = THREE.SRGBColorSpace;
+const face = new THREE.Mesh(new THREE.CylinderGeometry(.815, .815, .78, 32, 1, true, -.78, 1.56), new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, depthWrite: false }));
+face.position.y = -.08; rig.add(face);
+// brillo
+const gc = document.createElement('canvas'); gc.width = gc.height = 128;
+const gx = gc.getContext('2d'), grad = gx.createRadialGradient(64, 64, 0, 64, 64, 64);
+grad.addColorStop(0, 'rgba(255,255,255,.55)'); grad.addColorStop(.35, 'rgba(255,255,255,.16)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+gx.fillStyle = grad; gx.fillRect(0, 0, 128, 128);
+const glowMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(gc), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+const glow = new THREE.Sprite(glowMat); glow.scale.set(5.2, 5.2, 1); glow.position.set(0, .2, -.6); ghost.add(glow);
+// brasas
+const N = 70, emb = new Float32Array(N * 3), embV = [];
+for (let i = 0; i < N; i++) { emb[i * 3] = (Math.random() - .5) * 1.4; emb[i * 3 + 1] = Math.random() * 3 - 1; emb[i * 3 + 2] = (Math.random() - .5) * .8; embV.push(.2 + Math.random() * .5); }
+const embG = new THREE.BufferGeometry(); embG.setAttribute('position', new THREE.BufferAttribute(emb, 3));
+const embMat = new THREE.PointsMaterial({ size: .05, color: 0xffffff, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false });
+ghost.add(new THREE.Points(embG, embMat));
+
+/* ---------- caras (ojos × boca = cientos de combinaciones) ---------- */
+const INK = '#050505';
+const F = { eyes: 'malvado', mouth: 'sonrisa', blink: 0, look: 0 };
+const CARAS = {
+  neutro: ['redondo', 'plana'], feliz: ['feliz', 'sonrisa'], malvado: ['malvado', 'sonrisa'], risa: ['feliz', 'grande'], sorpresa: ['redondo', 'o'],
+  enfado: ['enfado', 'plana'], triste: ['triste', 'triste'], dormido: ['cerrado', 'plana'], amor: ['corazon', 'sonrisa'], guino: ['guino', 'sonrisilla'],
+  pensando: ['lado', 'sonrisilla'], asustado: ['redondo', 'ondulada'], aburrido: ['aburrido', 'plana'], chulo: ['malvado', 'sonrisilla'], lengua: ['feliz', 'lengua'],
+  mareado: ['espiral', 'ondulada'], estrellas: ['estrella', 'grande'], muerto: ['x', 'ondulada'],
+};
+function eye(kind, side) {
+  const c = fctx; c.save(); c.translate(256 + side * 92 + F.look * 18, 140); c.scale(side, 1);
+  c.fillStyle = c.strokeStyle = INK; c.lineWidth = 15; c.lineCap = c.lineJoin = 'round';
+  const k = kind === 'guino' ? (side === 1 ? 'feliz' : 'malvado') : kind;
+  const shut = F.blink > .5 && !['feliz', 'cerrado', 'x', 'corazon', 'estrella', 'espiral'].includes(k);
+  c.beginPath();
+  if (shut || k === 'cerrado') { c.moveTo(-40, 4); c.quadraticCurveTo(0, 18, 40, 4); c.stroke(); }
+  else if (k === 'malvado' || k === 'enfado') { const a = k === 'enfado' ? 20 : 0; c.moveTo(-48, 14 + a * .4); c.quadraticCurveTo(-4, -30 + a, 46, -30 + a * .2); c.quadraticCurveTo(36, 26, -20, 26); c.closePath(); c.fill(); }
+  else if (k === 'triste') { c.moveTo(-46, -24); c.quadraticCurveTo(10, -4, 46, 18); c.quadraticCurveTo(10, 32, -34, 22); c.closePath(); c.fill(); }
+  else if (k === 'feliz') { c.moveTo(-40, 14); c.quadraticCurveTo(0, -36, 40, 14); c.stroke(); }
+  else if (k === 'redondo' || k === 'lado') { c.ellipse(k === 'lado' ? 16 : 0, 0, 30, 36, 0, 0, 7); c.fill(); }
+  else if (k === 'aburrido') { c.moveTo(-40, -4); c.lineTo(40, -4); c.quadraticCurveTo(36, 28, 0, 28); c.quadraticCurveTo(-36, 28, -40, -4); c.fill(); }
+  else if (k === 'corazon') { c.moveTo(0, 30); c.bezierCurveTo(-60, -6, -26, -46, 0, -14); c.bezierCurveTo(26, -46, 60, -6, 0, 30); c.fill(); }
+  else if (k === 'x') { c.moveTo(-28, -28); c.lineTo(28, 28); c.moveTo(28, -28); c.lineTo(-28, 28); c.stroke(); }
+  else if (k === 'espiral') { c.lineWidth = 8; for (let a = 0; a < 16; a += .2) { const r = a * 2.2; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); }
+  else if (k === 'estrella') { for (let i = 0; i < 10; i++) { const r = i % 2 ? 16 : 40, a = -Math.PI / 2 + i * Math.PI / 5; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.fill(); }
+  if (['redondo', 'lado', 'malvado'].includes(k) && !shut) { c.fillStyle = '#fff'; c.beginPath(); c.arc(k === 'malvado' ? 14 : 10, k === 'malvado' ? -6 : -10, 6, 0, 7); c.fill(); }
+  c.restore();
+}
+function mouth(kind) {
+  const c = fctx; c.save(); c.translate(256 + F.look * 12, 252); c.fillStyle = c.strokeStyle = INK; c.lineWidth = 14; c.lineCap = c.lineJoin = 'round'; c.beginPath();
+  if (kind === 'sonrisa' || kind === 'lengua') {
+    c.moveTo(-128, -26); c.quadraticCurveTo(0, 96, 128, -26); c.quadraticCurveTo(0, 22, -128, -26); c.fill();
+    c.fillStyle = '#fff'; c.beginPath();
+    for (let i = 0; i < 8; i++) { const x0 = -96 + i * 24, y0 = -26 + 48 * (1 - ((x0 + 12) / 128) ** 2) * .5; c.moveTo(x0, y0 - 2); c.lineTo(x0 + 12, y0 + 18); c.lineTo(x0 + 24, y0 - 2); }
+    c.fill();
+    if (kind === 'lengua') { c.fillStyle = '#d9d9d9'; c.beginPath(); c.ellipse(30, 50, 26, 20, 0, 0, 7); c.fill(); }
+  } else if (kind === 'grande') { c.moveTo(-110, -30); c.quadraticCurveTo(0, 130, 110, -30); c.closePath(); c.fill(); c.fillStyle = '#cfcfcf'; c.beginPath(); c.ellipse(0, 50, 40, 18, 0, 0, 7); c.fill(); }
+  else if (kind === 'o') { c.ellipse(0, 10, 28, 34, 0, 0, 7); c.fill(); }
+  else if (kind === 'plana') { c.moveTo(-50, 10); c.lineTo(50, 10); c.stroke(); }
+  else if (kind === 'triste') { c.moveTo(-60, 30); c.quadraticCurveTo(0, -20, 60, 30); c.stroke(); }
+  else if (kind === 'ondulada') { c.moveTo(-70, 10); for (let i = 1; i <= 7; i++) c.quadraticCurveTo(-70 + i * 20 - 10, i % 2 ? -10 : 30, -70 + i * 20, 10); c.stroke(); }
+  else if (kind === 'sonrisilla') { c.moveTo(-60, 8); c.quadraticCurveTo(10, 40, 70, -14); c.stroke(); }
+  c.restore();
+}
+let faceDirty = true, faceTimer;
+function drawFace() { fctx.clearRect(0, 0, 512, 340); eye(F.eyes, -1); eye(F.eyes, 1); mouth(F.mouth); faceTex.needsUpdate = true; faceDirty = false; }
+function cara(n) { const c = CARAS[n] || CARAS.malvado; F.eyes = c[0]; F.mouth = c[1]; faceDirty = true; }
+function caraUn(n, ms = 2600) { cara(n); clearTimeout(faceTimer); faceTimer = setTimeout(() => cara('malvado'), ms); }
+
+/* ---------- animaciones: funciones de p (0..1) que suman sobre la pose ---------- */
+const S = Math.sin, PI = Math.PI;
+const ease = (p) => p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+let teleX = 0;
+const ANIMS = {
+  flotar: [2000, (p, A) => { A.y += S(p * PI) * .45; }],
+  saltar: [800, (p, A) => { A.y += S(p * PI) * 1.1; const sq = p < .12 ? 1 - p / .12 : p > .88 ? (p - .88) / .12 : 0; A.sy -= sq * .25; A.sx += sq * .15; A.armL += S(p * PI) * 1.4; A.armR += S(p * PI) * 1.4; }],
+  girar: [1000, (p, A) => { A.ry += ease(p) * PI * 2; }],
+  reir: [1400, (p, A) => { A.y += Math.abs(S(p * PI * 9)) * .14; A.rz += S(p * PI * 9) * .07; A.armL += .5; A.armR += .5; }],
+  bailar: [2600, (p, A) => { A.x += S(p * PI * 6) * .4; A.rz += S(p * PI * 6) * .22; A.armL += 1.2 + S(p * PI * 12) * .8; A.armR += 1.2 - S(p * PI * 12) * .8; A.y += Math.abs(S(p * PI * 12)) * .12; }],
+  saludar: [1700, (p, A) => { const e = S(Math.min(p * 4, 1) * PI / 2) * (p > .85 ? (1 - p) / .15 : 1); A.armR += e * (2.2 + S(p * PI * 10) * .45); A.rz -= e * .06; }],
+  '67': [2600, (p, A) => { const e = p > .9 ? (1 - p) / .1 : Math.min(p * 6, 1), w = S(p * PI * 10); A.armL += e * (1.3 + w * .55); A.armR += e * (1.3 - w * .55); A.rz += w * .05 * e; A.y += Math.abs(w) * .05; }],
+  temblar: [800, (p, A) => { A.x += S(p * 100) * .06 * (1 - p); A.rz += S(p * 80) * .04 * (1 - p); }],
+  desvanecer: [1800, (p, A) => { A.op *= 1 - S(p * PI) * .95; A.y += S(p * PI) * .2; }],
+  teletransporte: [1600, (p, A) => { const k = p < .4 ? 1 - p / .4 : p > .6 ? (p - .6) / .4 : 0; A.s *= k; A.op *= k; if (p > .5) A.x += teleX * (1 - ease((p - .5) / .5)); }],
+  crecer: [1500, (p, A) => { A.s *= 1 + S(p * PI) * .5; }],
+  encoger: [1500, (p, A) => { A.s *= 1 - S(p * PI) * .5; }],
+  asomarse: [2200, (p, A) => { A.y -= S(p * PI) * 2.2; A.rz += S(p * PI * 2) * .08; }],
+  dormir: [3200, (p, A) => { const e = S(Math.min(p * 3, 1) * PI / 2) * (p > .9 ? (1 - p) / .1 : 1); A.rz += e * .28; A.y -= e * .25; A.sy += S(p * PI * 4) * .03 * e; A.armL -= .3 * e; A.armR -= .3 * e; }],
+  aplaudir: [1500, (p, A) => { const w = Math.abs(S(p * PI * 7)); A.armL += 1 + w * .9; A.armR += 1 + w * .9; A.y += w * .04; }],
+  volar: [2400, (p, A) => { A.x += S(p * PI * 2) * 2.3; A.y += S(p * PI * 4) * .45; A.rz -= Math.cos(p * PI * 2) * .25; A.armL += 1; A.armR += 1; }],
+  rebotar: [1600, (p, A) => { A.y += Math.abs(S(p * PI * 4)) * (1 - p) * .9; }],
+  estirar: [1300, (p, A) => { const e = S(p * PI); A.sy += e * .4; A.sx -= e * .18; A.armL += e * 2; A.armR += e * 2; }],
+  latido: [1000, (p, A) => { A.s *= 1 + Math.abs(S(p * PI * 4)) * .1 * (1 - p); }],
+  espiar: [2200, (p, A) => { const e = S(p * PI); A.x += e * .7; A.ry += e * .9; A.y -= e * .2; }],
+  asentir: [1000, (p, A) => { A.rx += S(p * PI * 4) * .2; }],
+  negar: [1000, (p, A) => { A.ry += S(p * PI * 4) * .4; }],
+  encogerse: [1400, (p, A) => { const e = S(p * PI); A.armL += e * 1.1; A.armR += e * 1.1; A.sy -= e * .08; A.y -= e * .06; }],
+};
+const active = [];
+function anim(name) {
+  const a = ANIMS[name]; if (!a) return 0;
+  if (name === 'teletransporte') teleX = (Math.random() > .5 ? 1 : -1) * (1 + Math.random());
+  const dur = reduced ? Math.min(a[0], 600) : a[0];
+  active.push({ fn: a[1], t0: performance.now(), dur });
+  return dur;
 }
 
-// ojos que siguen al cursor
-const pointer = { x: innerWidth * .4, y: innerHeight * .3 };
-let lookOverride = null;
-addEventListener('pointermove', (e) => { pointer.x = e.clientX; pointer.y = e.clientY; }, { passive: true });
-(function look() {
-  for (const a of avatars) {
-    const r = a.svg.getBoundingClientRect();
-    if (!r.width || r.bottom < 0 || r.top > innerHeight) continue;
-    const t = lookOverride || pointer;
-    const s = r.width / 200, dx = t.x - (r.left + 100 * s), dy = t.y - (r.top + 96 * s);
-    const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 500);
-    a.eyes.style.transform = `translate(${(dx / d) * k * 3.2}px, ${(dy / d) * k * 2.4}px)`;
-    a.head.style.transform = `rotate(${(dx / d) * k * 2.5}deg)`;
+/* ---------- efectos sobre la página ---------- */
+const fx = $('#fx');
+function screenPos(dx = 0, dy = 0) {
+  const v = new THREE.Vector3(dx, dy, 0); ghost.localToWorld(v); v.project(camera);
+  return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
+}
+const GLYPH = { corazones: '♥', estrellas: '★', interrogacion: '?', exclamacion: '!', zzz: 'z', chispas: '✦' };
+function efecto(kind, texto) {
+  if (reduced && kind !== 'texto') return;
+  const o = screenPos(0, .6);
+  if (kind === 'texto') {
+    const el = document.createElement('i'); el.className = 'big'; el.textContent = String(texto || '').slice(0, 12);
+    el.style.left = `${o.x}px`; el.style.top = `${o.y}px`; fx.appendChild(el);
+    el.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.05)', opacity: 1, offset: .25 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: .8 }, { transform: 'translate(-50%,-50%) scale(1.15)', opacity: 0 }], { duration: 2200, easing: 'cubic-bezier(.2,.8,.2,1)' }).finished.then(() => el.remove());
+    return;
   }
-  requestAnimationFrame(look);
-})();
-// parpadeo cada 4,5 s
-if (!reduced) setInterval(() => avatars.forEach((a) => { a.svg.classList.add('blink'); setTimeout(() => a.svg.classList.remove('blink'), 140); }), 4500);
+  const n = kind === 'confeti' ? 60 : 9;
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('i');
+    if (kind === 'confeti') Object.assign(el.style, { width: '7px', height: '11px', background: pick(['#fff', '#4c8dff', '#ff9a6b', '#6bffb0', '#ffd36b']), borderRadius: '2px' });
+    else { el.textContent = GLYPH[kind] || '✦'; el.style.fontSize = `${18 + Math.random() * 18}px`; el.style.color = kind === 'corazones' ? '#ff6b8a' : '#fff'; el.style.textShadow = '0 0 12px rgba(255,255,255,.6)'; }
+    el.style.left = `${o.x + (Math.random() - .5) * 80}px`; el.style.top = `${o.y}px`; fx.appendChild(el);
+    const dx = (Math.random() - .5) * (kind === 'confeti' ? 600 : 160), dy = kind === 'confeti' ? 300 + Math.random() * 400 : -(120 + Math.random() * 160);
+    el.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: `translate(${dx}px,${dy}px) rotate(${(Math.random() - .5) * 720}deg)`, opacity: 0 }],
+      { duration: 1400 + Math.random() * 900, delay: i * (kind === 'confeti' ? 6 : 90), easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'backwards' }).finished.then(() => el.remove());
+  }
+}
+const bubble = $('#bubble');
+let bubbleUntil = 0;
+function decir(t, ms = 3200) { bubble.textContent = String(t).slice(0, 140); bubble.classList.add('show'); bubbleUntil = performance.now() + Math.min(Math.max(ms, 1500), 8000); }
+
+/* ---------- tono ---------- */
+const tint = new THREE.Color('#ffffff'), tintTarget = new THREE.Color('#ffffff');
+let tintOverride = null, tintOverrideUntil = 0;
+function color(hex, ms = 3500) { try { tintOverride = new THREE.Color(hex); tintOverrideUntil = performance.now() + ms; } catch {} }
+
+/* ---------- memes = combinaciones ---------- */
+const MEMES = {
+  '67': [{ cara: 'chulo' }, { efecto: 'texto', texto: '6 7' }, { animacion: '67' }],
+  encogerse: [{ cara: 'aburrido' }, { animacion: 'encogerse' }, { efecto: 'interrogacion' }],
+  'esto-esta-bien': [{ color: '#ff7a30' }, { cara: 'feliz' }, { efecto: 'chispas' }, { decir: 'Todo bien. Todo perfecto.' }],
+  stonks: [{ cara: 'chulo' }, { efecto: 'texto', texto: 'STONKS ↗' }, { animacion: 'crecer' }],
+  nope: [{ cara: 'asustado' }, { efecto: 'texto', texto: 'NOPE' }, { animacion: 'negar' }, { animacion: 'desvanecer' }],
+  ok: [{ cara: 'feliz' }, { animacion: 'asentir' }, { efecto: 'texto', texto: 'OK' }],
+  'mind-blown': [{ cara: 'mareado' }, { efecto: 'chispas' }, { animacion: 'crecer' }],
+  dramatico: [{ cara: 'sorpresa' }, { efecto: 'exclamacion' }, { animacion: 'latido' }],
+};
+
+/* ---------- ejecutor de acciones (lista blanca) ---------- */
+const hist = [];
+let queue = Promise.resolve();
+function run(acciones) {
+  const list = (Array.isArray(acciones) ? acciones : []).slice(0, 6).flatMap((a) => a && a.meme && MEMES[a.meme] ? MEMES[a.meme] : [a]);
+  queue = queue.then(async () => {
+    for (const a of list) {
+      if (!a || typeof a !== 'object') continue;
+      if (a.cara) caraUn(a.cara, 3200);
+      if (a.color) color(a.color);
+      if (a.efecto) efecto(a.efecto, a.texto);
+      if (a.decir) { decir(a.decir, a.ms || 3200); hist.push({ dijo: String(a.decir).slice(0, 90) }); await sleep(500); }
+      if (a.animacion) await sleep(anim(a.animacion) * .7);
+      if (a.esperar) await sleep(Math.min(+a.esperar || 0, 3000));
+      if (a.ir) document.getElementById(a.ir)?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    }
+  }).catch(() => {});
+}
+window.s0k1x = { run, cara, anim, decir, efecto, color, memes: Object.keys(MEMES), caras: Object.keys(CARAS), animaciones: Object.keys(ANIMS) };
 
 /* =========================================================
-   Hero: avatar + terminal
+   Cerebro: Gemini vía Supabase, con respaldo local
    ========================================================= */
-const hero = avatar($('#heroAvatar'), { hand: true });
-const termCmd = $('#termCmd'), termOut = $('#termOut');
-let termBusy = false, termQueue = null;
-async function type(cmd, out) {
-  termBusy = true;
-  termCmd.textContent = ''; termOut.innerHTML = '&nbsp;';
-  for (const ch of cmd) { termCmd.textContent += ch; await sleep(reduced ? 0 : 42); }
-  await sleep(reduced ? 0 : 260);
-  termOut.textContent = out;
-  termBusy = false;
+let calls = 0, lastCall = 0, aiDown = false;
+const LOCAL = {
+  inicio: () => [{ cara: 'malvado' }, { animacion: 'saludar' }, { decir: 'Buenas. Soy el fantasma de s0k1x. Pulsa en mí si te aburres.' }],
+  seccion: (c) => c.seccion === 'contacto' ? [{ cara: 'feliz' }, { animacion: 'saltar' }, { decir: '¿Hablamos? s0k1x contesta rápido.' }]
+    : c.seccion === 'kit' ? [{ cara: 'chulo' }, { animacion: 'girar' }] : c.seccion === 'herramientas' ? [{ cara: 'pensando' }, { animacion: 'asentir' }] : [{ cara: 'feliz' }, { animacion: 'flotar' }],
+  proyecto: () => [{ cara: pick(['feliz', 'chulo', 'amor']) }, { animacion: pick(['saltar', 'girar', 'rebotar', 'latido']) }],
+  clic: () => pick([[{ cara: 'risa' }, { animacion: 'reir' }], [{ meme: '67' }], [{ cara: 'sorpresa' }, { animacion: 'teletransporte' }], [{ cara: 'lengua' }, { animacion: 'bailar' }], [{ cara: 'mareado' }, { animacion: 'girar' }]]),
+  inactivo: () => [{ cara: 'dormido' }, { efecto: 'zzz' }, { animacion: 'dormir' }],
+  vuelve: () => [{ cara: 'sorpresa' }, { animacion: 'temblar' }, { decir: '¡Has vuelto!' }],
+  mensaje: (c) => /6\s*7|six seven/i.test(c.mensaje) ? [{ meme: '67' }] : [{ cara: 'pensando' }, { animacion: 'encogerse' }, { decir: 'Ahora mismo no tengo el cerebro conectado. Prueba más tarde.' }],
+};
+function contexto(extra = {}) {
+  const p = currentProject();
+  return {
+    seccion: currentSection, proyecto: p ? { nombre: p.name, descripcion: p.desc, lenguaje: p.lang, privado: !!p.priv } : null,
+    proyectos: PROJECTS.map((x) => x.name), sobre: 's0k1x: desarrollador de webs, automatizaciones y skills para Claude Code (kit s0k1x-skill: 35 skills, 3 agentes).',
+    hora: new Date().getHours(), movil: mobile(), historial: hist.slice(-6), ...extra,
+  };
 }
-const LINES = [
-  () => ['ls proyectos | wc -l', `→ ${repoCount()} proyectos publicados`],
-  () => ['whoami', '→ s0k1x · desarrollador de webs y herramientas para IA'],
-  () => ['cat ahora.txt', '→ mejorando s0k1x-skill (35 skills, 3 agentes)'],
-];
-let li = 0;
-(async function termLoop() {
-  while (true) {
-    if (termQueue) { const q = termQueue; termQueue = null; await type(...q); await sleep(2600); continue; }
-    await type(...LINES[li++ % LINES.length]());
-    await sleep(reduced ? 8000 : 3400);
-  }
-})();
-
-const heroCard = $('#heroCard');
-heroCard.addEventListener('pointerenter', () => hero.mood('happy'));
-heroCard.addEventListener('pointerleave', () => hero.mood('smile'));
-async function greet() {
-  if (hero.svg.classList.contains('wave')) return;
-  hero.mood('happy');
-  hero.svg.classList.add('wave');
-  termQueue = ['echo "hola"', '→ ¡Hola! Gracias por pasarte. Mira mis proyectos abajo.'];
-  await sleep(1900);
-  hero.svg.classList.remove('wave');
+async function think(evento, extra = {}, gap = 6000) {
+  const now = Date.now(), ctx = contexto(extra);
+  hist.push({ evento, ...(extra.mensaje ? { mensaje: extra.mensaje } : {}) });
+  if (aiDown || calls >= 40 || now - lastCall < gap) { run(LOCAL[evento]?.(ctx) || []); return; }
+  lastCall = now; calls++;
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 9000);
+    const r = await fetch(CONFIG.brain, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CONFIG.anon}`, apikey: CONFIG.anon }, body: JSON.stringify({ evento, contexto: ctx }) });
+    clearTimeout(to);
+    if (r.status === 503 || r.status === 403) aiDown = true;
+    if (!r.ok) throw new Error(r.status);
+    const { acciones } = await r.json();
+    if (!acciones?.length) throw new Error('vacío');
+    run(acciones);
+  } catch { run(LOCAL[evento]?.(ctx) || []); }
 }
-$('#heroAvatar').addEventListener('click', greet);
-$('#heroAvatar').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); greet(); } });
 
 /* =========================================================
-   Proyectos: lista + panel, cada repo con su portada propia
+   Proyectos (projects.json + GitHub)
    ========================================================= */
-const LANG = { JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572a5', HTML: '#e34c26', CSS: '#e06b3c', Shell: '#89e051', Go: '#00add8', Rust: '#dea584' };
-const HUES = ['#ff7a45', '#e5484d', '#30a46c', '#0091ff', '#f5a524', '#12a594', '#ff6b9a', '#7fc8ff', '#c9e85a'];
-const SAYS = ['Este me costó tres cafés.', 'Aquí aprendí un montón.', 'De este estoy bastante orgulloso.', 'Hecho un domingo por la tarde.', 'Funciona. No preguntes cómo.', 'Ábrelo y dale una estrella.'];
-let sel = 0;
-
-function coverSVG(name) {
-  const r = rng(hash(name)), c = HUES[hash(name) % HUES.length], W = 800, H = 320, kind = hash(name + '#') % 6;
-  let s = `<rect width="${W}" height="${H}" fill="#0e0e0f"/><radialGradient id="g${hash(name)}" cx="${30 + r() * 40}%" cy="${30 + r() * 40}%" r="70%"><stop offset="0" stop-color="${c}" stop-opacity=".28"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient><rect width="${W}" height="${H}" fill="url(#g${hash(name)})"/>`;
-  const st = (o, w = 1.2) => `stroke="${c}" stroke-opacity="${o}" stroke-width="${w}" fill="none"`;
-  if (kind === 0) { // curvas de nivel
-    const cx = 200 + r() * 400, cy = 80 + r() * 160;
-    for (let i = 1; i < 16; i++) { let d = ''; for (let a = 0; a <= 64; a++) { const t = a / 64 * Math.PI * 2, rr = i * 22 * (1 + .18 * Math.sin(t * 3 + i * .4 + r())); d += `${a ? 'L' : 'M'}${(cx + Math.cos(t) * rr * 1.5).toFixed(1)} ${(cy + Math.sin(t) * rr).toFixed(1)}`; } s += `<path d="${d}Z" ${st(.55 - i * .028)}/>`; }
-  } else if (kind === 1) { // rejilla de puntos en onda
-    const f = 1 + r() * 2, ph = r() * 6;
-    for (let x = 20; x < W; x += 22) for (let y = 20; y < H; y += 22) { const v = (Math.sin(x / 90 * f + ph) + Math.cos(y / 60 + x / 200)) / 2; s += `<circle cx="${x}" cy="${y}" r="${(1 + Math.max(0, v) * 3.2).toFixed(2)}" fill="${c}" fill-opacity="${(.15 + Math.max(0, v) * .7).toFixed(2)}"/>`; }
-  } else if (kind === 2) { // barras tipo onda
-    const n = 64, bw = W / n;
-    for (let i = 0; i < n; i++) { const h = 20 + Math.abs(Math.sin(i * .21 + r() * .6) * Math.cos(i * .05)) * 220 * (.4 + r() * .6); s += `<rect x="${i * bw + 2}" y="${(H - h) / 2}" width="${bw - 5}" height="${h}" rx="3" fill="${c}" fill-opacity="${(.18 + h / 340).toFixed(2)}"/>`; }
-  } else if (kind === 3) { // órbitas
-    const cx = W / 2 + (r() - .5) * 200, cy = H / 2;
-    for (let i = 0; i < 7; i++) s += `<ellipse cx="${cx}" cy="${cy}" rx="${60 + i * 52}" ry="${22 + i * 19}" transform="rotate(${-12 + r() * 8} ${cx} ${cy})" ${st(.6 - i * .07)}/>`;
-    for (let i = 0; i < 7; i++) { const a = r() * Math.PI * 2; s += `<circle cx="${cx + Math.cos(a) * (60 + i * 52)}" cy="${cy + Math.sin(a) * (22 + i * 19)}" r="${3 + r() * 4}" fill="${c}"/>`; }
-    s += `<circle cx="${cx}" cy="${cy}" r="18" fill="${c}"/>`;
-  } else if (kind === 4) { // isométrica
-    for (let x = -H; x < W + H; x += 34) s += `<path d="M${x} 0 L${x + H * .58} ${H} M${x} 0 L${x - H * .58} ${H}" ${st(.16)}/>`;
-    for (let i = 0; i < 5; i++) { const x = 100 + r() * 600, y = 60 + r() * 200, z = 26 + r() * 30; s += `<path d="M${x} ${y - z} L${x + z * 1.7} ${y} L${x} ${y + z} L${x - z * 1.7} ${y} Z" fill="${c}" fill-opacity="${(.15 + r() * .5).toFixed(2)}" ${st(.8)}/>`; }
-  } else { // flujo de líneas
-    for (let i = 0; i < 26; i++) { const y0 = i * 13 + 10, a = 20 + r() * 50, f = .006 + r() * .006; let d = `M0 ${y0}`; for (let x = 0; x <= W; x += 20) d += ` L${x} ${(y0 + Math.sin(x * f + i * .3) * a).toFixed(1)}`; s += `<path d="${d}" ${st(.12 + (i % 5) * .08, 1.4)}/>`; }
-  }
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${s}</svg>`;
-}
-
-async function getRepos() {
-  try { const c = sessionStorage.getItem('repos3'); if (c) return JSON.parse(c); } catch {}
-  const res = await fetch(`https://api.github.com/users/${CONFIG.github}/repos?per_page=100&sort=pushed`);
-  if (!res.ok) throw new Error(res.status);
-  const data = (await res.json()).filter((r) => !r.fork).map((r) => ({ name: r.name, lang: r.language, desc: r.description, url: r.html_url, home: r.homepage, stars: r.stargazers_count, pushed: r.pushed_at }));
-  try { sessionStorage.setItem('repos3', JSON.stringify(data)); } catch {}
-  return data;
-}
+let PROJECTS = [];
 async function getProjects() {
-  let cfg = { proyectos: [], mostrarOtrosPublicos: true };
+  let cfg = { proyectos: [], mostrarOtrosPublicos: true }, gh = [];
   try { const r = await fetch('projects.json', { cache: 'no-cache' }); if (r.ok) cfg = await r.json(); } catch {}
-  let gh = [];
-  try { gh = await getRepos(); } catch {}
-  const byName = new Map(gh.map((r) => [r.name.toLowerCase(), r]));
-  const used = new Set();
-  const out = [];
+  try {
+    const c = sessionStorage.getItem('repos3');
+    if (c) gh = JSON.parse(c);
+    else {
+      const r = await fetch(`https://api.github.com/users/${CONFIG.github}/repos?per_page=100&sort=pushed`);
+      if (r.ok) { gh = (await r.json()).filter((x) => !x.fork).map((x) => ({ name: x.name, lang: x.language, desc: x.description, url: x.html_url, home: x.homepage, stars: x.stargazers_count, pushed: x.pushed_at })); sessionStorage.setItem('repos3', JSON.stringify(gh)); }
+    }
+  } catch {}
+  const by = new Map(gh.map((g) => [g.name.toLowerCase(), g])), used = new Set(), out = [];
   for (const p of cfg.proyectos || []) {
     if (p.repo) used.add(p.repo.toLowerCase());
     if (p.mostrar === false) continue;
-    const g = (!p.privado && p.repo && byName.get(p.repo.toLowerCase())) || {};
-    const name = p.nombre || p.repo || g.name;
-    if (!name) continue;
-    out.push({
-      id: p.repo || name, name, priv: !!p.privado, lang: p.lenguaje || g.lang, stars: p.privado ? null : g.stars, pushed: g.pushed,
-      desc: p.descripcion || g.desc, say: p.frase, web: p.web || g.home || '',
-      code: p.privado ? '' : (g.url || (p.repo ? `https://github.com/${CONFIG.github}/${p.repo}` : '')),
-      images: (p.imagenes || []).filter(Boolean), links: (p.enlaces || []).filter((l) => l && l.url),
-    });
+    const g = (!p.privado && p.repo && by.get(p.repo.toLowerCase())) || {};
+    const name = p.nombre || p.repo; if (!name) continue;
+    out.push({ id: p.repo || name, name, priv: !!p.privado, lang: p.lenguaje || g.lang, stars: p.privado ? null : g.stars, pushed: g.pushed, desc: p.descripcion || g.desc || '',
+      web: p.web || g.home || '', code: p.privado ? '' : (g.url || (p.repo ? `https://github.com/${CONFIG.github}/${p.repo}` : '')), images: (p.imagenes || []).filter(Boolean), links: (p.enlaces || []).filter((l) => l?.url) });
   }
-  if (cfg.mostrarOtrosPublicos) for (const g of gh) {
-    if (used.has(g.name.toLowerCase()) || g.name.toLowerCase() === CONFIG.github.toLowerCase()) continue;
-    out.push({ id: g.name, name: g.name, lang: g.lang, stars: g.stars, pushed: g.pushed, desc: g.desc, web: g.home || '', code: g.url, images: [], links: [] });
-  }
+  if (cfg.mostrarOtrosPublicos) gh.filter((g) => !used.has(g.name.toLowerCase()) && g.name.toLowerCase() !== CONFIG.github).forEach((g) => out.push({ id: g.name, name: g.name, lang: g.lang, stars: g.stars, pushed: g.pushed, desc: g.desc || '', web: g.home || '', code: g.url, images: [], links: [] }));
   return out;
 }
+function renderProjects() {
+  $('#statProj').textContent = PROJECTS.length;
+  $('#projLead').textContent = `${PROJECTS.length} proyectos, cada uno con su color. Mira cómo cambia el fantasma.`;
+  $('#projectChapters').innerHTML = PROJECTS.map((p, i) => {
+    const t = HUES[hash(p.id) % HUES.length];
+    const meta = [p.priv && '<span class="tag">Privado</span>', p.lang && esc(p.lang), p.stars != null && `★ ${p.stars}`, p.pushed && new Date(p.pushed).getFullYear()].filter(Boolean).map((m) => `<span>${m}</span>`).join('');
+    const acts = [p.web && `<a class="btn" href="${esc(p.web)}" target="_blank" rel="noopener">Abrir la web</a>`, p.code && `<a class="btn${p.web ? ' btn--ghost' : ''}" href="${esc(p.code)}" target="_blank" rel="noopener">Ver el código</a>`].filter(Boolean).join('');
+    return `<section class="ch" id="p-${i}" data-pose="side" data-tint="${t}" data-project="${i}" style="--tint:${t}">
+      <div class="ch__text"><p class="kicker">Proyecto ${String(i + 1).padStart(2, '0')} / ${String(PROJECTS.length).padStart(2, '0')}</p>
+      <h2>${esc(p.name)}</h2>${p.desc ? `<p class="lead">${esc(p.desc)}</p>` : ''}<div class="meta">${meta}</div>
+      ${p.images.length ? `<div class="shots">${p.images.slice(0, 3).map((s, k) => `<a href="${esc(s)}" target="_blank" rel="noopener"><img src="${esc(s)}" alt="${esc(p.name)}, imagen ${k + 1}" loading="lazy"></a>`).join('')}</div>` : ''}
+      <div class="actions">${acts}</div>${p.links.length ? `<div class="links">${p.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.texto || 'Referencia')} ↗</a>`).join('')}</div>` : ''}</div></section>`;
+  }).join('');
+  observeChapters();
+}
 
-const list = $('#repoList');
-function renderList() {
-  $('#projSub').textContent = `${REPOS.length} proyectos. Pasa de uno a otro con las flechas.`;
-  list.innerHTML = REPOS.map((r, i) => `<li><button class="repo" role="option" aria-selected="${i === sel}" data-i="${i}" style="--c:${HUES[hash(r.id) % HUES.length]}">
-    <i class="repo__dot"></i><span class="repo__name">${esc(r.name)}</span><span class="repo__lang">${r.priv ? 'privado' : esc(r.lang || '')}</span></button></li>`).join('');
-  list.querySelectorAll('.repo').forEach((b) => b.addEventListener('click', () => select(+b.dataset.i)));
-  select(0, true);
+/* =========================================================
+   Capítulos: el fantasma se coloca y cambia con el scroll
+   ========================================================= */
+let currentSection = 'inicio', currentEl = null;
+const seen = new Set();
+const currentProject = () => currentEl?.dataset.project != null ? PROJECTS[+currentEl.dataset.project] : null;
+const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) enterChapter(e.target); }), { threshold: .55 });
+function observeChapters() { document.querySelectorAll('.ch').forEach((s) => io.observe(s)); buildDots(); }
+function enterChapter(el) {
+  if (currentEl === el) return;
+  currentEl = el; currentSection = el.dataset.project != null ? 'proyecto' : el.id;
+  tintTarget.set(el.dataset.tint || '#ffffff');
+  document.querySelectorAll('.dots a').forEach((d) => d.classList.toggle('on', d.dataset.id === el.id));
+  if (seen.has(el.id)) return;
+  seen.add(el.id);
+  if (el.id === 'inicio') return;
+  think(el.dataset.project != null ? 'proyecto' : 'seccion', {}, el.dataset.project != null ? 4000 : 5000);
 }
-const step = (d) => { select((sel + d + REPOS.length) % REPOS.length); list.querySelector(`[data-i="${sel}"]`)?.scrollIntoView({ block: 'nearest' }); };
-list.addEventListener('keydown', (e) => {
-  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-  e.preventDefault(); step(e.key === 'ArrowDown' ? 1 : -1); list.querySelector(`[data-i="${sel}"]`).focus();
-});
-$('#prevBtn').addEventListener('click', () => step(-1));
-$('#nextBtn').addEventListener('click', () => step(1));
+function buildDots() {
+  let d = $('.dots'); if (!d) { d = document.createElement('nav'); d.className = 'dots'; d.setAttribute('aria-label', 'Capítulos'); document.body.appendChild(d); }
+  d.innerHTML = [...document.querySelectorAll('.ch')].map((s) => `<a href="#${s.id}" data-id="${s.id}" class="${s === currentEl ? 'on' : ''}" aria-label="${esc(s.querySelector('h1,h2')?.textContent || s.id)}"></a>`).join('');
+}
 
-avatar($('#meAvatar'), { hand: true });
-const sayAv = avatar($('#sayAv'), { sw: 3.2 });
-const readmes = new Map();
-let shot = 0;
-function showShot(r, k) {
-  shot = k;
-  const box = $('#repoCover');
-  if (!r.images.length) { box.innerHTML = coverSVG(r.id); return; }
-  box.innerHTML = `<img src="${esc(r.images[k])}" alt="${esc(r.name)}, imagen ${k + 1} de ${r.images.length}" loading="lazy">` +
-    (r.images.length > 1 ? `<div class="shots">${r.images.map((_, i) => `<button class="shots__dot" aria-label="Imagen ${i + 1}" aria-current="${i === k}" data-k="${i}"></button>`).join('')}</div>` : '');
-  box.querySelector('img').addEventListener('error', () => { box.innerHTML = coverSVG(r.id); }, { once: true });
-  box.querySelectorAll('.shots__dot').forEach((d) => d.addEventListener('click', () => showShot(r, +d.dataset.k)));
+/* =========================================================
+   Bucle
+   ========================================================= */
+const ptr = { x: 0, y: 0 };
+addEventListener('pointermove', (e) => { ptr.x = e.clientX / innerWidth * 2 - 1; ptr.y = e.clientY / innerHeight * 2 - 1; poke(); }, { passive: true });
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+const pos = new THREE.Vector3(), target = new THREE.Vector3();
+let baseScale = 1, blinkAt = performance.now() + 2500, firstFrame = true;
+function poseTarget() {
+  const visH = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z, visW = visH * camera.aspect;
+  const pose = currentEl?.dataset.pose || 'hero';
+  if (mobile()) { target.set(0, visH * .2, 0); baseScale = Math.min(1, visW / 4.4) * .85; }
+  else if (pose === 'center') { target.set(0, visH * .2, 0); baseScale = .62; }
+  else { target.set(visW * (pose === 'hero' ? .2 : .18), -.1, 0); baseScale = 1; }
 }
-function select(i, quiet) {
-  sel = i;
-  const r = REPOS[i];
-  if (!r) return;
-  list.querySelectorAll('.repo').forEach((b) => b.setAttribute('aria-selected', String(+b.dataset.i === i)));
-  $('#appPath').textContent = `~/s0k1x/${r.id}`;
-  $('#appCount').textContent = `${String(i + 1).padStart(2, '0')} / ${String(REPOS.length).padStart(2, '0')}`;
-  showShot(r, 0);
-  $('#repoName').textContent = r.name;
-  $('#repoMeta').innerHTML = [r.priv && '<span class="tag">Privado</span>', r.lang && `<span><i class="repo__dot" style="--c:${LANG[r.lang] || '#888'};display:inline-block;margin-right:6px"></i>${esc(r.lang)}</span>`,
-    r.stars != null && `<span>★ ${r.stars}</span>`, r.pushed && `<span>${new Date(r.pushed).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}</span>`].filter(Boolean).join('');
-  $('#repoDesc').textContent = r.desc || (r.code ? 'Cargando descripción…' : '');
-  $('#repoSay').textContent = r.say || SAYS[hash(r.id) % SAYS.length];
-  const btn = (href, txt, ghost) => `<a class="btn${ghost ? ' btn--ghost' : ''}" href="${esc(href)}" target="_blank" rel="noopener">${esc(txt)}</a>`;
-  const acts = [];
-  if (r.web) acts.push(btn(r.web, 'Abrir la web', false));
-  if (r.code) acts.push(btn(r.code, 'Ver el código', !!r.web));
-  r.links.slice(0, 3).forEach((l) => acts.push(`<a class="chip" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.texto || 'Referencia')} ↗</a>`));
-  $('#repoActions').innerHTML = acts.join('');
-  if (!quiet) { sayAv.mood('happy'); setTimeout(() => sayAv.mood('smile'), 900); }
-  if (!r.desc && r.code) readmeDesc(r);
-}
-async function readmeDesc(r) {
-  let t = readmes.get(r.id);
-  if (t === undefined) {
-    try {
-      const res = await fetch(`https://api.github.com/repos/${CONFIG.github}/${r.id}/readme`, { headers: { Accept: 'application/vnd.github.raw+json' } });
-      const md = res.ok ? await res.text() : '';
-      t = md.split(/\n\s*\n/).map((p) => p.replace(/!\[[^\]]*\]\([^)]*\)|<[^>]+>|[#*_`>]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim())
-        .find((p) => p.length > 40 && !/^(\||-{3})/.test(p)) || '';
-    } catch { t = ''; }
-    readmes.set(r.id, t);
+function frame(now) {
+  requestAnimationFrame(frame);
+  const t = now / 1000;
+  U.uTime.value = t; U.uWob.value = reduced ? .3 : 1;
+  poseTarget(); if (firstFrame) { pos.copy(target); firstFrame = false; } else pos.lerp(target, .05);
+  const A = { x: 0, y: S(t * 1.6) * .08, z: 0, rx: 0, ry: 0, rz: S(t * .9) * .03, s: 1, sx: 1, sy: 1, armL: S(t * 2.2) * .12, armR: S(t * 2.2 + 1) * .12, op: 1 };
+  for (let i = active.length - 1; i >= 0; i--) { const a = active[i], p = (now - a.t0) / a.dur; if (p >= 1) { active.splice(i, 1); continue; } a.fn(p, A); }
+  ghost.position.set(pos.x + A.x, pos.y + A.y, A.z);
+  const sc = baseScale * A.s; ghost.scale.set(sc * A.sx, sc * A.sy, sc);
+  rig.rotation.set(A.rx + ptr.y * .12, A.ry + ptr.x * .35, A.rz);
+  arms[0].rotation.z = .55 - A.armL; arms[1].rotation.z = -.55 + A.armR;
+  U.uOpacity.value = A.op; glowMat.opacity = .9 * A.op; embMat.opacity = .7 * A.op; face.material.opacity = A.op;
+  tint.lerp(tintOverride && now < tintOverrideUntil ? tintOverride : tintTarget, .06);
+  U.uTint.value.copy(tint); glowMat.color.copy(tint); embMat.color.copy(tint);
+  const lk = Math.round(ptr.x * 4) / 4; if (lk !== F.look) { F.look = lk; faceDirty = true; }
+  if (now > blinkAt && !F.blink) { F.blink = 1; faceDirty = true; }
+  if (F.blink && now > blinkAt + 120) { F.blink = 0; faceDirty = true; blinkAt = now + 2500 + Math.random() * 3000; }
+  if (faceDirty) drawFace();
+  const pa = embG.attributes.position;
+  for (let i = 0; i < N; i++) { let y = pa.getY(i) + embV[i] * .012; if (y > 2.2) y = -.6; pa.setY(i, y); pa.setX(i, pa.getX(i) + S(t * 2 + i) * .002); }
+  pa.needsUpdate = true;
+  if (bubble.classList.contains('show')) {
+    if (now > bubbleUntil) bubble.classList.remove('show');
+    const o = screenPos(.55, 1.5), w = bubble.offsetWidth;
+    bubble.style.left = `${Math.min(Math.max(o.x, 12), innerWidth - w - 12)}px`; bubble.style.top = `${Math.max(o.y - bubble.offsetHeight, 70)}px`;
   }
-  if (REPOS[sel] !== r) return;
-  $('#repoDesc').textContent = t || 'Todavía sin descripción. El código habla por sí solo.';
+  renderer.render(scene, camera);
 }
+requestAnimationFrame(frame);
 
-(async () => {
-  REPOS = await getProjects();
-  if (!REPOS.length) REPOS = [{ id: 's0k1x-skill', name: 's0k1x-skill', code: 'https://github.com/s0k1x/s0k1x-skill', images: [], links: [] }];
-  renderList();
-})();
-
-/* =========================================================
-   Kit: recorre las skills (bucle de 3,2 s)
-   ========================================================= */
-const SKILLS = [
-  ['s0k1x-estilo', 'Diseña webs con dirección de arte real y un comprobador en el navegador.'],
-  ['s0k1x-pulido', 'Crítica y pulido de interfaces: jerarquía, tipografía, color y accesibilidad.'],
-  ['s0k1x-movimiento', 'Crea o audita animaciones con criterios de diseño de movimiento.'],
-  ['s0k1x-componentes', 'Construye botones, tarjetas y heros que no parecen de plantilla.'],
-  ['s0k1x-humano', 'Reescribe textos para que no suenen a IA.'],
-  ['s0k1x-breve', 'Respuestas escuetas que ahorran tokens.'],
-  ['s0k1x-tokens', 'Audita el gasto de contexto y lo reduce con tu permiso.'],
-  ['s0k1x-investigar', 'Diagnostica un fallo antes de tocar el código.'],
-  ['s0k1x-parche', 'Arreglos mínimos en la capa responsable.'],
-  ['s0k1x-construir', 'Funcionalidad nueva sin construir de más.'],
-  ['s0k1x-refactor', 'Reestructura sin cambiar el comportamiento.'],
-  ['s0k1x-memoria', 'Un runbook por repo que se lee al empezar cada sesión.'],
-];
-const kitList = $('#kitList'), kitDesc = $('#kitDesc');
-kitList.innerHTML = SKILLS.map(([n]) => `<li>${n}</li>`).join('');
-let ki = 0;
-function kitStep() {
-  kitList.querySelectorAll('li').forEach((l, i) => l.classList.toggle('on', i === ki));
-  kitDesc.textContent = `/${SKILLS[ki][0]}: ${SKILLS[ki][1]}`;
-  const vis = [...kitList.children].filter((l) => l.offsetParent).length || SKILLS.length;
-  ki = (ki + 1) % vis;
-}
-kitStep();
-if (!reduced) {
-  let kt = setInterval(kitStep, 3200);
-  const kit = $('.kit');
-  kit.addEventListener('pointerenter', () => { clearInterval(kt); ki = 0; kitStep(); kt = setInterval(kitStep, 3200); });
-}
-
-/* =========================================================
-   Herramientas: diagrama con pulsos
-   ========================================================= */
-const TOOLS = [
-  ['javascript', 'JavaScript'], ['python', 'Python'], ['html', 'HTML'], ['css', 'CSS'], ['nodejs', 'Node.js'], ['git', 'Git'],
-  ['github', 'GitHub', true], ['claude', 'Claude'], ['supabase', 'Supabase'], ['cloudflare', 'Cloudflare'], ['visual-studio-code', 'VS Code'], ['linux-tux', 'Linux'], ['kalilinux', 'Kali Linux'],
-];
-const hub = $('#hub'), hubLines = $('#hubLines');
-avatar($('#hubCore'), { sw: 3 });
-const nodes = TOOLS.map(([f, label, ink]) => {
-  const n = document.createElement('div');
-  n.className = 'node';
-  n.innerHTML = `<div class="node__tile"><img src="assets/icons/${f}.svg" alt="" class="${ink ? 'ink' : ''}" loading="lazy"></div><span>${label}</span>`;
-  hub.appendChild(n);
-  return n;
+/* ---------- interacción ---------- */
+const ray = new THREE.Raycaster();
+document.addEventListener('click', (e) => {
+  if (e.target.closest('a,button,input,img,form')) return;
+  ray.setFromCamera(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
+  if (ray.intersectObject(rig, true).length) think('clic', {}, 3000);
 });
-function layoutHub() {
-  const w = hub.clientWidth, h = hub.clientHeight, cx = w / 2, cy = h / 2;
-  const small = w < 640;
-  const rx = Math.min(w * .44, small ? w * .38 : 560), ry = h * (small ? .38 : .39);
-  let svg = '';
-  nodes.forEach((n, i) => {
-    const a = -Math.PI / 2 + (i / nodes.length) * Math.PI * 2;
-    const x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry;
-    n.style.left = `${x}px`; n.style.top = `${y - 8}px`;
-    svg += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y - 8}"/>`;
-  });
-  hubLines.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  hubLines.innerHTML = svg + '<circle id="pulse" r="3.5" cx="-10" cy="-10"/>';
-}
-layoutHub();
-addEventListener('resize', layoutHub);
-if (!reduced) {
-  let pi = 0;
-  setInterval(() => {
-    const ln = hubLines.querySelectorAll('line')[pi % nodes.length];
-    const p = $('#pulse', hubLines);
-    if (!ln || !p) return;
-    const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map((k) => +ln.getAttribute(k));
-    p.animate([{ cx: `${x1}px`, cy: `${y1}px` }, { cx: `${x2}px`, cy: `${y2}px` }], { duration: 900, easing: 'linear' });
-    p.setAttribute('cx', x2); p.setAttribute('cy', y2);
-    nodes.forEach((n, i) => n.firstElementChild.classList.toggle('on', i === pi % nodes.length));
-    pi++;
-  }, 1000);
-}
+$('#chat').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = $('#chatIn').value.trim(); if (!v) return;
+  $('#chatIn').value = '';
+  caraUn('pensando', 2000);
+  think('mensaje', { mensaje: v.slice(0, 200) }, 1500);
+});
+let idleT;
+function poke() { clearTimeout(idleT); idleT = setTimeout(() => think('inactivo', {}, 20000), 40000); }
+addEventListener('scroll', poke, { passive: true });
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => { if (document.hidden) hiddenAt = Date.now(); else if (Date.now() - hiddenAt > 15000) think('vuelve', {}, 8000); });
 
-/* =========================================================
-   Contacto
-   ========================================================= */
+/* ---------- herramientas ---------- */
+const TOOLS = [['javascript', 'JavaScript'], ['python', 'Python'], ['html', 'HTML'], ['css', 'CSS'], ['nodejs', 'Node.js'], ['git', 'Git'], ['github', 'GitHub', 1], ['claude', 'Claude'], ['supabase', 'Supabase'], ['cloudflare', 'Cloudflare'], ['visual-studio-code', 'VS Code'], ['linux-tux', 'Linux']];
+$('#tools').innerHTML = TOOLS.map(([f, l, ink]) => `<li><img src="assets/icons/${f}.svg" alt="" class="${ink ? 'ink' : ''}" loading="lazy">${l}</li>`).join('');
 $('#year').textContent = new Date().getFullYear();
-$('#copyBtn').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText(CONFIG.email); } catch {}
-  const t = $('#copyText');
-  t.textContent = '✓ Copiado';
-  setTimeout(() => (t.textContent = CONFIG.email), 1800);
-});
 
-/* =========================================================
-   API del personaje: para que una IA (Gemini, etc.) lo controle.
-   Desde la consola o desde otro script: s0k1x.decir('Hola'), s0k1x.meme(url, 'texto')…
-   La clave de la IA nunca va en esta web: va en un servidor intermedio (ver README).
-   ========================================================= */
-const bubble = $('#heroBubble'), memeBox = $('#heroMeme');
-const listeners = {};
-const emit = (ev, data) => (listeners[ev] || []).forEach((fn) => { try { fn(data); } catch {} });
-let bubbleT;
-window.s0k1x = {
-  decir(texto, ms = 4000) {
-    bubble.textContent = String(texto); bubble.classList.add('show');
-    hero.mood('happy'); setTimeout(() => hero.mood('smile'), 700);
-    clearTimeout(bubbleT); bubbleT = setTimeout(() => bubble.classList.remove('show'), ms);
-  },
-  terminal(cmd, salida) { termQueue = [String(cmd), `→ ${salida}`]; },
-  cara(m) { [hero, sayAv].forEach((a) => a.mood(m)); }, // 'smile' | 'happy' | 'o' | 'flat'
-  saludar: greet,
-  mirar(x, y) { lookOverride = { x, y }; },
-  mirarCursor() { lookOverride = null; },
-  meme(url, texto = '', ms = 6000) {
-    memeBox.innerHTML = `<img src="${esc(url)}" alt="${esc(texto || 'meme')}">${texto ? `<p>${esc(texto)}</p>` : ''}`;
-    memeBox.classList.add('show');
-    setTimeout(() => memeBox.classList.remove('show'), ms);
-  },
-  irA(id) { document.getElementById(id)?.scrollIntoView(); },
-  proyecto(q) { const i = typeof q === 'number' ? q : REPOS.findIndex((r) => r.id === q || r.name === q); if (i >= 0) { select(i); emit('proyecto', REPOS[i]); } },
-  proyectos: () => REPOS.map(({ id, name, desc, web, code, priv }) => ({ id, name, desc, web, code, privado: priv })),
-  on(ev, fn) { (listeners[ev] ||= []).push(fn); }, // 'click' (avatar pulsado), 'proyecto' (proyecto elegido)
-};
-$('#heroAvatar').addEventListener('click', () => emit('click'));
+/* ---------- arranque ---------- */
+cara('malvado');
+observeChapters();
+getProjects().then((p) => { PROJECTS = p; renderProjects(); });
+setTimeout(() => think('inicio', {}, 0), 1200);
+poke();
