@@ -119,6 +119,14 @@ h2 { font-size: 48px; line-height: 1.06; letter-spacing: var(--display-tracking)
   .notice { margin-bottom: 14px; }
 }
 
+/* ===== Bocadillo y memes del avatar (API s0k1x) ===== */
+.hero-bubble { position: absolute; z-index: 3; left: 24px; top: 24px; max-width: 30ch; margin: 0; background: var(--p-ink); color: var(--p-bg); padding: 10px 16px; border-radius: 16px 16px 16px 4px; font-weight: 500; font-size: 15px; opacity: 0; transform: translateY(6px); transition: opacity var(--m-out), transform var(--m-out) var(--m-ease); pointer-events: none; }
+.hero-bubble.show { opacity: 1; transform: none; }
+.hero-meme { position: absolute; z-index: 4; inset: 16px 16px auto; opacity: 0; transform: scale(.98); transition: opacity var(--m-out), transform var(--m-out) var(--m-ease); pointer-events: none; border-radius: 14px; overflow: hidden; background: #000; }
+.hero-meme.show { opacity: 1; transform: none; }
+.hero-meme img { display: block; width: 100%; max-height: 360px; object-fit: contain; }
+.hero-meme p { margin: 0; padding: 10px 14px; font-weight: 500; text-align: center; background: var(--p-raise); }
+
 /* ===== Avatar (línea fina) ===== */
 .av .av-eyes, .av .av-brows, .av .av-mouth, .av .av-head, .av .av-hand { transform-box: view-box; }
 .av .av-eyes { transition: transform .18s ease-out; }
@@ -136,7 +144,12 @@ h2 { font-size: 48px; line-height: 1.06; letter-spacing: var(--display-tracking)
 .app { height: min(560px, calc(100svh - var(--padt) - var(--padb) - 150px)); min-height: 420px; display: flex; flex-direction: column; background: #0c0c0d; border: 1px solid var(--p-line); border-radius: var(--r-lg); overflow: hidden; }
 .app__bar { height: 42px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--p-line); color: var(--p-muted); }
 .app__bar i { width: 11px; height: 11px; border-radius: 50%; background: #2a2a2d; }
-.app__bar span { margin-left: 10px; }
+.app__bar > span { margin-left: 10px; }
+.app__nav { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.app__nav .mono { margin-right: 8px; color: #6b6b6e; }
+.nav-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--p-line); color: var(--p-ink); display: grid; place-items: center; font-size: 15px; transition: background var(--m-out), transform var(--m-out) var(--m-ease); }
+.nav-btn:hover { background: rgba(255, 255, 255, .06); transform: translateY(-1px); transition-duration: var(--m-in); }
+.nav-btn:active { transform: translateY(1px) scale(.97); }
 .app__body { flex: 1; min-height: 0; display: grid; grid-template-columns: 320px 1fr; }
 .app__list { list-style: none; margin: 0; padding: 8px; overflow-y: auto; border-right: 1px solid var(--p-line); scrollbar-width: thin; scrollbar-color: #2a2a2d transparent; }
 .repo { width: 100%; display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; text-align: left; color: var(--p-muted); transition: background var(--m-out), color var(--m-out); }
@@ -147,6 +160,14 @@ h2 { font-size: 48px; line-height: 1.06; letter-spacing: var(--display-tracking)
 .repo__lang { font: 12px var(--font-mono); color: #6b6b6e; }
 .app__panel { min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .cover { height: 44%; min-height: 150px; position: relative; border-bottom: 1px solid var(--p-line); overflow: hidden; }
+.cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; animation: coverIn .5s var(--m-ease); transition: transform var(--m-image) var(--m-ease); }
+.cover:hover img { transform: scale(1.02); }
+.shots { position: absolute; left: 50%; bottom: 12px; translate: -50% 0; display: flex; gap: 6px; padding: 6px 8px; border-radius: 999px; background: rgba(0, 0, 0, .55); backdrop-filter: blur(6px); }
+.shots__dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .4); }
+.shots__dot[aria-current="true"] { background: #fff; }
+.tag { color: var(--p-accent); border: 1px solid color-mix(in srgb, var(--p-accent) 40%, transparent); border-radius: 999px; padding: 0 8px; }
+.chip { display: inline-flex; align-items: center; height: 42px; padding: 0 16px; border-radius: 999px; font-size: 14px; color: var(--p-muted); border: 1px dashed var(--p-line); transition: color var(--m-out), border-color var(--m-out); }
+.chip:hover { color: var(--p-ink); border-color: #3a3a3d; }
 .cover svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; animation: coverIn .5s var(--m-ease); }
 @keyframes coverIn { from { opacity: 0; transform: scale(1.02); } }
 .panel__body { flex: 1; min-height: 0; padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; }

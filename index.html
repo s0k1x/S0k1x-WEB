@@ -45,6 +45,8 @@
           </div>
         </div>
         <div class="hero__card card" id="heroCard">
+          <p class="hero-bubble" id="heroBubble" aria-live="polite"></p>
+          <div class="hero-meme" id="heroMeme" aria-live="polite"></div>
           <div class="avatar-wrap" id="heroAvatar" role="button" tabindex="0" aria-label="Mi avatar. Pulsa para saludar."></div>
           <div class="term" aria-live="polite">
             <div class="term__line"><span class="term__path">~/s0k1x</span> $ <span id="termCmd"></span><span class="caret"></span></div>
@@ -58,11 +60,12 @@
     <section class="section section--surface" id="proyectos" style="--h:1">
       <div class="wrap">
         <div class="head">
-          <h2>Proyectos en GitHub</h2>
-          <p class="sub" id="projSub">Todos mis repositorios públicos. Elige uno para ver de qué va.</p>
+          <h2>Mis proyectos</h2>
+          <p class="sub" id="projSub">Lo que he construido. Pasa de uno a otro con las flechas.</p>
         </div>
         <div class="app" id="app">
-          <div class="app__bar"><i></i><i></i><i></i><span class="mono" id="appPath">~/s0k1x/proyectos</span></div>
+          <div class="app__bar"><i></i><i></i><i></i><span class="mono" id="appPath">~/s0k1x/proyectos</span>
+            <div class="app__nav"><span class="mono" id="appCount"></span><button class="nav-btn" id="prevBtn" type="button" aria-label="Proyecto anterior">←</button><button class="nav-btn" id="nextBtn" type="button" aria-label="Proyecto siguiente">→</button></div></div>
           <div class="app__body">
             <ul class="app__list" id="repoList" role="listbox" aria-label="Repositorios"></ul>
             <article class="app__panel" id="repoPanel" aria-live="polite">

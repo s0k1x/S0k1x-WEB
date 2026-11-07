@@ -4,22 +4,11 @@
 const CONFIG = {
   github: 's0k1x',
   email: 'hola@s0k1x.example', // ← pon tu email real (y en index.html)
-  // Descripción, frase del avatar o web propia para repos concretos (opcional)
-  notes: {
-    's0k1x-skill': { desc: 'Kit de 35 skills y 3 agentes para Claude Code: diseño web, escritura, ahorro de tokens e ingeniería, coordinados entre sí.', say: 'Mi niño mimado. Lo uso todos los días.' },
-    'S0k1x-WEB': { desc: 'Esta web. HTML, CSS y JavaScript sin dependencias, con mi avatar dentro.', say: 'Estás dentro de este proyecto ahora mismo.' },
-  },
-  hidden: [], // repos que no quieres mostrar
-  // Copia por si la API de GitHub falla o llega al límite
-  fallback: [
-    ['s0k1x-skill', 'Python'], ['S0k1x-WEB', 'JavaScript'], ['Aura-X', 'JavaScript'], ['Roblox-automatico', 'Python'],
-    ['prueba-repositorio-airama', 'JavaScript'], ['aurevixweb-web', 'HTML'], ['s0k1x-toolkit-kali-linux', null], ['kreskolab', 'CSS'],
-    ['Malaga-reventa', null], ['PEQUE-m', null], ['IA-PRUEBA', null], ['fran-taser', null], ['anita_repositorio', null],
-  ],
+  // Los proyectos que salen se eligen en projects.json
 };
 
 let REPOS = [];
-const repoCount = () => (REPOS.length || CONFIG.fallback.length);
+const repoCount = () => REPOS.length || 11;
 const $ = (s, el = document) => el.querySelector(s);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -68,12 +57,14 @@ function avatar(host, { ink = '#efefef', paper = '#161617', acc = '#ff7a45', sw 
 
 // ojos que siguen al cursor
 const pointer = { x: innerWidth * .4, y: innerHeight * .3 };
+let lookOverride = null;
 addEventListener('pointermove', (e) => { pointer.x = e.clientX; pointer.y = e.clientY; }, { passive: true });
 (function look() {
   for (const a of avatars) {
     const r = a.svg.getBoundingClientRect();
     if (!r.width || r.bottom < 0 || r.top > innerHeight) continue;
-    const s = r.width / 200, dx = pointer.x - (r.left + 100 * s), dy = pointer.y - (r.top + 96 * s);
+    const t = lookOverride || pointer;
+    const s = r.width / 200, dx = t.x - (r.left + 100 * s), dy = t.y - (r.top + 96 * s);
     const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 500);
     a.eyes.style.transform = `translate(${(dx / d) * k * 3.2}px, ${(dy / d) * k * 2.4}px)`;
     a.head.style.transform = `rotate(${(dx / d) * k * 2.5}deg)`;
@@ -98,7 +89,7 @@ async function type(cmd, out) {
   termBusy = false;
 }
 const LINES = [
-  () => ['ls proyectos | wc -l', `→ ${repoCount()} repositorios públicos en GitHub`],
+  () => ['ls proyectos | wc -l', `→ ${repoCount()} proyectos publicados`],
   () => ['whoami', '→ s0k1x · desarrollador de webs y herramientas para IA'],
   () => ['cat ahora.txt', '→ mejorando s0k1x-skill (35 skills, 3 agentes)'],
 ];
@@ -161,72 +152,110 @@ function coverSVG(name) {
 }
 
 async function getRepos() {
-  try { const c = sessionStorage.getItem('repos2'); if (c) return JSON.parse(c); } catch {}
+  try { const c = sessionStorage.getItem('repos3'); if (c) return JSON.parse(c); } catch {}
   const res = await fetch(`https://api.github.com/users/${CONFIG.github}/repos?per_page=100&sort=pushed`);
   if (!res.ok) throw new Error(res.status);
   const data = (await res.json()).filter((r) => !r.fork).map((r) => ({ name: r.name, lang: r.language, desc: r.description, url: r.html_url, home: r.homepage, stars: r.stargazers_count, pushed: r.pushed_at }));
-  try { sessionStorage.setItem('repos2', JSON.stringify(data)); } catch {}
+  try { sessionStorage.setItem('repos3', JSON.stringify(data)); } catch {}
   return data;
+}
+async function getProjects() {
+  let cfg = { proyectos: [], mostrarOtrosPublicos: true };
+  try { const r = await fetch('projects.json', { cache: 'no-cache' }); if (r.ok) cfg = await r.json(); } catch {}
+  let gh = [];
+  try { gh = await getRepos(); } catch {}
+  const byName = new Map(gh.map((r) => [r.name.toLowerCase(), r]));
+  const used = new Set();
+  const out = [];
+  for (const p of cfg.proyectos || []) {
+    if (p.repo) used.add(p.repo.toLowerCase());
+    if (p.mostrar === false) continue;
+    const g = (!p.privado && p.repo && byName.get(p.repo.toLowerCase())) || {};
+    const name = p.nombre || p.repo || g.name;
+    if (!name) continue;
+    out.push({
+      id: p.repo || name, name, priv: !!p.privado, lang: p.lenguaje || g.lang, stars: p.privado ? null : g.stars, pushed: g.pushed,
+      desc: p.descripcion || g.desc, say: p.frase, web: p.web || g.home || '',
+      code: p.privado ? '' : (g.url || (p.repo ? `https://github.com/${CONFIG.github}/${p.repo}` : '')),
+      images: (p.imagenes || []).filter(Boolean), links: (p.enlaces || []).filter((l) => l && l.url),
+    });
+  }
+  if (cfg.mostrarOtrosPublicos) for (const g of gh) {
+    if (used.has(g.name.toLowerCase()) || g.name.toLowerCase() === CONFIG.github.toLowerCase()) continue;
+    out.push({ id: g.name, name: g.name, lang: g.lang, stars: g.stars, pushed: g.pushed, desc: g.desc, web: g.home || '', code: g.url, images: [], links: [] });
+  }
+  return out;
 }
 
 const list = $('#repoList');
 function renderList() {
-  const hidden = new Set(CONFIG.hidden.map((n) => n.toLowerCase()));
-  REPOS = REPOS.filter((r) => !hidden.has(r.name.toLowerCase()) && r.name.toLowerCase() !== CONFIG.github.toLowerCase());
-  const pin = Object.keys(CONFIG.notes);
-  REPOS.sort((a, b) => { const ia = pin.indexOf(a.name), ib = pin.indexOf(b.name); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
-  $('#projSub').textContent = `${REPOS.length} repositorios públicos. Elige uno para ver de qué va.`;
-  list.innerHTML = REPOS.map((r, i) => `<li><button class="repo" role="option" aria-selected="${i === sel}" data-i="${i}" style="--c:${HUES[hash(r.name) % HUES.length]}">
-    <i class="repo__dot"></i><span class="repo__name">${esc(r.name)}</span><span class="repo__lang">${esc(r.lang || '')}</span></button></li>`).join('');
+  $('#projSub').textContent = `${REPOS.length} proyectos. Pasa de uno a otro con las flechas.`;
+  list.innerHTML = REPOS.map((r, i) => `<li><button class="repo" role="option" aria-selected="${i === sel}" data-i="${i}" style="--c:${HUES[hash(r.id) % HUES.length]}">
+    <i class="repo__dot"></i><span class="repo__name">${esc(r.name)}</span><span class="repo__lang">${r.priv ? 'privado' : esc(r.lang || '')}</span></button></li>`).join('');
   list.querySelectorAll('.repo').forEach((b) => b.addEventListener('click', () => select(+b.dataset.i)));
   select(0, true);
 }
+const step = (d) => { select((sel + d + REPOS.length) % REPOS.length); list.querySelector(`[data-i="${sel}"]`)?.scrollIntoView({ block: 'nearest' }); };
 list.addEventListener('keydown', (e) => {
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-  e.preventDefault();
-  select((sel + (e.key === 'ArrowDown' ? 1 : -1) + REPOS.length) % REPOS.length);
-  list.querySelector(`[data-i="${sel}"]`).focus();
+  e.preventDefault(); step(e.key === 'ArrowDown' ? 1 : -1); list.querySelector(`[data-i="${sel}"]`).focus();
 });
+$('#prevBtn').addEventListener('click', () => step(-1));
+$('#nextBtn').addEventListener('click', () => step(1));
 
 avatar($('#meAvatar'), { hand: true });
 const sayAv = avatar($('#sayAv'), { sw: 3.2 });
 const readmes = new Map();
+let shot = 0;
+function showShot(r, k) {
+  shot = k;
+  const box = $('#repoCover');
+  if (!r.images.length) { box.innerHTML = coverSVG(r.id); return; }
+  box.innerHTML = `<img src="${esc(r.images[k])}" alt="${esc(r.name)}, imagen ${k + 1} de ${r.images.length}" loading="lazy">` +
+    (r.images.length > 1 ? `<div class="shots">${r.images.map((_, i) => `<button class="shots__dot" aria-label="Imagen ${i + 1}" aria-current="${i === k}" data-k="${i}"></button>`).join('')}</div>` : '');
+  box.querySelector('img').addEventListener('error', () => { box.innerHTML = coverSVG(r.id); }, { once: true });
+  box.querySelectorAll('.shots__dot').forEach((d) => d.addEventListener('click', () => showShot(r, +d.dataset.k)));
+}
 function select(i, quiet) {
   sel = i;
   const r = REPOS[i];
+  if (!r) return;
   list.querySelectorAll('.repo').forEach((b) => b.setAttribute('aria-selected', String(+b.dataset.i === i)));
-  const note = CONFIG.notes[r.name] || {};
-  $('#appPath').textContent = `~/s0k1x/${r.name}`;
-  $('#repoCover').innerHTML = coverSVG(r.name);
+  $('#appPath').textContent = `~/s0k1x/${r.id}`;
+  $('#appCount').textContent = `${String(i + 1).padStart(2, '0')} / ${String(REPOS.length).padStart(2, '0')}`;
+  showShot(r, 0);
   $('#repoName').textContent = r.name;
-  $('#repoMeta').innerHTML = [r.lang && `<span><i class="repo__dot" style="--c:${LANG[r.lang] || '#888'};display:inline-block;margin-right:6px"></i>${esc(r.lang)}</span>`,
+  $('#repoMeta').innerHTML = [r.priv && '<span class="tag">Privado</span>', r.lang && `<span><i class="repo__dot" style="--c:${LANG[r.lang] || '#888'};display:inline-block;margin-right:6px"></i>${esc(r.lang)}</span>`,
     r.stars != null && `<span>★ ${r.stars}</span>`, r.pushed && `<span>${new Date(r.pushed).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}</span>`].filter(Boolean).join('');
-  const desc = note.desc || r.desc;
-  $('#repoDesc').textContent = desc || 'Cargando descripción…';
-  $('#repoSay').textContent = note.say || SAYS[hash(r.name) % SAYS.length];
-  $('#repoActions').innerHTML = `<a class="btn" href="${esc(r.url || `https://github.com/${CONFIG.github}/${r.name}`)}" target="_blank" rel="noopener">Ver el código</a>` +
-    (r.home ? `<a class="btn btn--ghost" href="${esc(r.home)}" target="_blank" rel="noopener">Abrir la web</a>` : '');
+  $('#repoDesc').textContent = r.desc || (r.code ? 'Cargando descripción…' : '');
+  $('#repoSay').textContent = r.say || SAYS[hash(r.id) % SAYS.length];
+  const btn = (href, txt, ghost) => `<a class="btn${ghost ? ' btn--ghost' : ''}" href="${esc(href)}" target="_blank" rel="noopener">${esc(txt)}</a>`;
+  const acts = [];
+  if (r.web) acts.push(btn(r.web, 'Abrir la web', false));
+  if (r.code) acts.push(btn(r.code, 'Ver el código', !!r.web));
+  r.links.slice(0, 3).forEach((l) => acts.push(`<a class="chip" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.texto || 'Referencia')} ↗</a>`));
+  $('#repoActions').innerHTML = acts.join('');
   if (!quiet) { sayAv.mood('happy'); setTimeout(() => sayAv.mood('smile'), 900); }
-  if (!desc) readmeDesc(r);
+  if (!r.desc && r.code) readmeDesc(r);
 }
 async function readmeDesc(r) {
-  let t = readmes.get(r.name);
+  let t = readmes.get(r.id);
   if (t === undefined) {
     try {
-      const res = await fetch(`https://api.github.com/repos/${CONFIG.github}/${r.name}/readme`, { headers: { Accept: 'application/vnd.github.raw+json' } });
+      const res = await fetch(`https://api.github.com/repos/${CONFIG.github}/${r.id}/readme`, { headers: { Accept: 'application/vnd.github.raw+json' } });
       const md = res.ok ? await res.text() : '';
       t = md.split(/\n\s*\n/).map((p) => p.replace(/!\[[^\]]*\]\([^)]*\)|<[^>]+>|[#*_`>]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim())
         .find((p) => p.length > 40 && !/^(\||-{3})/.test(p)) || '';
     } catch { t = ''; }
-    readmes.set(r.name, t);
+    readmes.set(r.id, t);
   }
   if (REPOS[sel] !== r) return;
   $('#repoDesc').textContent = t || 'Todavía sin descripción. El código habla por sí solo.';
 }
 
 (async () => {
-  try { REPOS = await getRepos(); } catch { REPOS = []; }
-  if (!REPOS.length) REPOS = CONFIG.fallback.map(([name, lang]) => ({ name, lang }));
+  REPOS = await getProjects();
+  if (!REPOS.length) REPOS = [{ id: 's0k1x-skill', name: 's0k1x-skill', code: 'https://github.com/s0k1x/s0k1x-skill', images: [], links: [] }];
   renderList();
 })();
 
@@ -319,3 +348,35 @@ $('#copyBtn').addEventListener('click', async () => {
   t.textContent = '✓ Copiado';
   setTimeout(() => (t.textContent = CONFIG.email), 1800);
 });
+
+/* =========================================================
+   API del personaje: para que una IA (Gemini, etc.) lo controle.
+   Desde la consola o desde otro script: s0k1x.decir('Hola'), s0k1x.meme(url, 'texto')…
+   La clave de la IA nunca va en esta web: va en un servidor intermedio (ver README).
+   ========================================================= */
+const bubble = $('#heroBubble'), memeBox = $('#heroMeme');
+const listeners = {};
+const emit = (ev, data) => (listeners[ev] || []).forEach((fn) => { try { fn(data); } catch {} });
+let bubbleT;
+window.s0k1x = {
+  decir(texto, ms = 4000) {
+    bubble.textContent = String(texto); bubble.classList.add('show');
+    hero.mood('happy'); setTimeout(() => hero.mood('smile'), 700);
+    clearTimeout(bubbleT); bubbleT = setTimeout(() => bubble.classList.remove('show'), ms);
+  },
+  terminal(cmd, salida) { termQueue = [String(cmd), `→ ${salida}`]; },
+  cara(m) { [hero, sayAv].forEach((a) => a.mood(m)); }, // 'smile' | 'happy' | 'o' | 'flat'
+  saludar: greet,
+  mirar(x, y) { lookOverride = { x, y }; },
+  mirarCursor() { lookOverride = null; },
+  meme(url, texto = '', ms = 6000) {
+    memeBox.innerHTML = `<img src="${esc(url)}" alt="${esc(texto || 'meme')}">${texto ? `<p>${esc(texto)}</p>` : ''}`;
+    memeBox.classList.add('show');
+    setTimeout(() => memeBox.classList.remove('show'), ms);
+  },
+  irA(id) { document.getElementById(id)?.scrollIntoView(); },
+  proyecto(q) { const i = typeof q === 'number' ? q : REPOS.findIndex((r) => r.id === q || r.name === q); if (i >= 0) { select(i); emit('proyecto', REPOS[i]); } },
+  proyectos: () => REPOS.map(({ id, name, desc, web, code, priv }) => ({ id, name, desc, web, code, privado: priv })),
+  on(ev, fn) { (listeners[ev] ||= []).push(fn); }, // 'click' (avatar pulsado), 'proyecto' (proyecto elegido)
+};
+$('#heroAvatar').addEventListener('click', () => emit('click'));
