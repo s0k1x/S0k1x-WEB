@@ -19,28 +19,11 @@ Todo en **`projects.json`**: el orden de la lista es el orden en la web.
 
 El email está en `main.js` (`CONFIG.email`) y en `index.html` (botones de contacto).
 
-## Controlar el avatar desde código (para conectar una IA)
-La web expone `window.s0k1x`:
-
-| Llamada | Qué hace |
-|---|---|
-| `s0k1x.decir('texto', ms)` | bocadillo encima del avatar |
-| `s0k1x.terminal('cmd', 'salida')` | escribe en la terminal del avatar |
-| `s0k1x.cara('smile' \| 'happy' \| 'o' \| 'flat')` | cambia la expresión |
-| `s0k1x.saludar()` | saluda con la mano |
-| `s0k1x.mirar(x, y)` / `s0k1x.mirarCursor()` | dirige la mirada |
-| `s0k1x.meme(urlImagen, 'texto', ms)` | enseña una imagen (un meme) sobre el avatar |
-| `s0k1x.proyecto('Aura-X')` / `s0k1x.irA('kit')` | abre un proyecto / va a una sección |
-| `s0k1x.proyectos()` | lista de proyectos (para dar contexto a la IA) |
-| `s0k1x.on('click' \| 'proyecto', fn)` | eventos para que la IA reaccione |
-
-**La clave de Gemini no puede ir en esta web** (cualquiera la vería en el código). Hace falta un servidor
-pequeño en medio (por ejemplo un Cloudflare Worker) que guarde la clave, hable con Gemini y devuelva
-acciones como `{ "decir": "...", "cara": "happy", "meme": "..." }`, que la web ejecuta con esta API.
-
-Iconos: `assets/icons/` (SVG Logos CC0, Simple Icons CC0, VSCode Icons MIT; créditos en `icons-credits.json`).
-
-## Local
-```bash
-python3 -m http.server 8000
-```
+## El fantasma (3D + IA)
+- Modelo 3D hecho por código con Three.js (sin archivos de modelo): llama blanca con brillo, cara dibujada en textura.
+- 18 caras × 23 animaciones × efectos × memes (67, stonks, nope...), combinables.
+- Lo controla Gemini a través de la Edge Function `fantasma` de Supabase (`supabase/functions/fantasma`).
+  La web le cuenta qué pasa (entra en una sección, mira un proyecto, pulsan el fantasma, escriben en el chat, se queda quieto)
+  y Gemini devuelve acciones con sentido. Si la IA no responde, el fantasma usa reacciones locales.
+- Secreto necesario en Supabase: `GEMINI_API_KEY` (Edge Functions → Secrets). Opcional: `GEMINI_MODEL`.
+- Desde la consola: `s0k1x.run([{ meme: "67" }])`, `s0k1x.caras`, `s0k1x.animaciones`, `s0k1x.memes`.

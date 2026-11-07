@@ -1,171 +1,97 @@
 <!doctype html>
-<html lang="es" data-type="software" data-radius="soft" data-motion>
+<html lang="es" data-type="software">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>s0k1x · Desarrollador de webs y herramientas para IA</title>
-  <meta name="description" content="s0k1x, desarrollador de webs, automatizaciones y skills para Claude Code. 13 proyectos públicos en GitHub." />
+  <meta name="description" content="s0k1x, desarrollador de webs, automatizaciones y skills para Claude Code." />
   <meta name="page-type" content="software" />
   <meta name="site-kind" content="software" />
-  <meta name="theme-color" content="#0a0a0a" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230a0a0a'/%3E%3Crect x='13' y='24' width='17' height='13' rx='3' fill='none' stroke='%23efefef' stroke-width='3'/%3E%3Crect x='34' y='24' width='17' height='13' rx='3' fill='none' stroke='%23efefef' stroke-width='3'/%3E%3Ccircle cx='21.5' cy='30.5' r='2.4' fill='%23efefef'/%3E%3Ccircle cx='42.5' cy='30.5' r='2.4' fill='%23efefef'/%3E%3C/svg%3E" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23000'/%3E%3Cpath d='M32 8c4 10 16 16 16 30a16 16 0 0 1-32 0c0-8 6-12 8-18 2 5 5 6 6 6-2-8 0-13 2-18z' fill='%23fff'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <script defer src="main.js"></script>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+  <script type="module" src="main.js"></script>
 </head>
 <body>
-  <!-- kind: software (portfolio de desarrollador) · tokens: black-crimson con acento naranja elegido por el cliente · type: instrument · hero: split (elegido por el cliente sobre el dealt "product") · ground: topglow -->
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="fx" id="fx" aria-hidden="true"></div>
+  <p class="bubble" id="bubble" aria-live="polite"></p>
+
   <header class="nav">
-    <div class="wrap nav__in">
-      <a class="mark" href="#top" aria-label="s0k1x, inicio">s0k1x</a>
-      <nav class="nav__links" aria-label="Secciones">
-        <a href="#proyectos">Proyectos</a>
-        <a href="#kit">s0k1x-skill</a>
-        <a href="#stack">Herramientas</a>
-        <a href="#sobre">Sobre mí</a>
-      </nav>
-      <a class="btn btn--sm" href="#contacto">Enviar un email</a>
-    </div>
+    <a class="mark" href="#inicio">s0k1x<span>.</span></a>
+    <nav class="nav__links">
+      <a href="#proyectos">Proyectos</a><a href="#kit">s0k1x-skill</a><a href="#herramientas">Herramientas</a>
+    </nav>
+    <a class="btn btn--sm" href="#contacto">Contacto</a>
   </header>
 
-  <main>
-    <!-- 1 · HERO -->
-    <section class="section hero" id="top" style="--h:1">
-      <div class="glow" aria-hidden="true"></div>
-      <div class="wrap hero__grid">
-        <div class="hero__text">
-          <p class="notice"><span class="dot"></span>Disponible para proyectos nuevos</p>
-          <h1>Desarrollador de webs y herramientas para IA.</h1>
-          <p class="lead">Soy s0k1x. Programo webs, automatizaciones y skills para Claude Code, y publico todo el código en abierto en GitHub.</p>
-          <div class="actions">
-            <a class="btn" href="#proyectos">Ver proyectos</a>
-            <a class="btn btn--ghost" href="#contacto">Enviar un email</a>
-          </div>
+  <main id="story">
+    <section class="ch" id="inicio" data-pose="hero">
+      <div class="ch__text">
+        <p class="kicker">s0k1x · desarrollador</p>
+        <h1>Webs y herramientas para IA, hechas a mano.</h1>
+        <p class="lead">Soy s0k1x. Programo webs, automatizaciones y skills para Claude Code. El fantasma que ves lo controla una IA: pulsa sobre él o escríbele.</p>
+        <div class="stats">
+          <div><b id="statProj">11</b><span>proyectos</span></div>
+          <div><b>35</b><span>skills</span></div>
+          <div><b>3</b><span>agentes</span></div>
         </div>
-        <div class="hero__card card" id="heroCard">
-          <p class="hero-bubble" id="heroBubble" aria-live="polite"></p>
-          <div class="hero-meme" id="heroMeme" aria-live="polite"></div>
-          <div class="avatar-wrap" id="heroAvatar" role="button" tabindex="0" aria-label="Mi avatar. Pulsa para saludar."></div>
-          <div class="term" aria-live="polite">
-            <div class="term__line"><span class="term__path">~/s0k1x</span> $ <span id="termCmd"></span><span class="caret"></span></div>
-            <div class="term__out" id="termOut">&nbsp;</div>
-          </div>
-        </div>
+      </div>
+      <p class="scroll-hint">Baja para ver mis proyectos ↓</p>
+    </section>
+
+    <section class="ch" id="proyectos" data-pose="side">
+      <div class="ch__text">
+        <p class="kicker">Proyectos</p>
+        <h2>Lo que he construido, uno por uno.</h2>
+        <p class="lead" id="projLead">Cada proyecto tiene su propio color. Mira cómo cambia el fantasma.</p>
       </div>
     </section>
 
-    <!-- 2 · PROYECTOS (app-frame) -->
-    <section class="section section--surface" id="proyectos" style="--h:1">
-      <div class="wrap">
-        <div class="head">
-          <h2>Mis proyectos</h2>
-          <p class="sub" id="projSub">Lo que he construido. Pasa de uno a otro con las flechas.</p>
+    <div id="projectChapters"></div>
+
+    <section class="ch" id="kit" data-pose="side" data-tint="#ffb38a">
+      <div class="ch__text">
+        <p class="kicker">Mi kit</p>
+        <h2>s0k1x-skill para Claude Code.</h2>
+        <p class="lead">Skills que se coordinan entre sí: diseño web, escritura, ahorro de tokens e ingeniería. Esta web está hecha con él.</p>
+        <div class="stats">
+          <div><b>35</b><span>skills</span></div>
+          <div><b>3</b><span>agentes</span></div>
+          <div><b>2</b><span>Claude Code y Codex</span></div>
         </div>
-        <div class="app" id="app">
-          <div class="app__bar"><i></i><i></i><i></i><span class="mono" id="appPath">~/s0k1x/proyectos</span>
-            <div class="app__nav"><span class="mono" id="appCount"></span><button class="nav-btn" id="prevBtn" type="button" aria-label="Proyecto anterior">←</button><button class="nav-btn" id="nextBtn" type="button" aria-label="Proyecto siguiente">→</button></div></div>
-          <div class="app__body">
-            <ul class="app__list" id="repoList" role="listbox" aria-label="Repositorios"></ul>
-            <article class="app__panel" id="repoPanel" aria-live="polite">
-              <div class="cover" id="repoCover"></div>
-              <div class="panel__body">
-                <div class="panel__head">
-                  <h3 id="repoName"></h3>
-                  <div class="meta mono" id="repoMeta"></div>
-                </div>
-                <p class="panel__desc" id="repoDesc"></p>
-                <div class="say"><div class="say__av" id="sayAv"></div><p id="repoSay"></p></div>
-                <div class="actions" id="repoActions"></div>
-              </div>
-            </article>
-          </div>
-        </div>
+        <a class="btn" href="https://github.com/s0k1x/s0k1x-skill" target="_blank" rel="noopener">Ver el repositorio</a>
       </div>
     </section>
 
-    <!-- 3 · s0k1x-skill -->
-    <section class="section" id="kit" style="--h:1">
-      <div class="wrap split">
-        <div class="split__text">
-          <h2>s0k1x-skill, mi kit para Claude Code</h2>
-          <p class="sub">35 skills y 3 agentes que se coordinan entre sí: diseño web, escritura, ahorro de tokens e ingeniería. Lo uso en todos mis proyectos, también en esta web.</p>
-          <dl class="facts">
-            <div><dt>Skills</dt><dd>35</dd></div>
-            <div><dt>Agentes</dt><dd>3</dd></div>
-            <div><dt>Funciona en</dt><dd>Claude Code y Codex</dd></div>
-          </dl>
-          <a class="btn" href="https://github.com/s0k1x/s0k1x-skill" target="_blank" rel="noopener">Ver el repositorio</a>
-        </div>
-        <div class="kit card card--frame" aria-label="Ejemplo del kit en la terminal">
-          <div class="app__bar"><i></i><i></i><i></i><span class="mono">claude · s0k1x-skill</span></div>
-          <div class="kit__body mono">
-            <p class="kit__cmd"><span class="term__path">&gt;</span> /plugin install s0k1x-skill</p>
-            <p class="kit__ok">✓ 35 skills · 3 agentes instalados</p>
-            <ul class="kit__list" id="kitList"></ul>
-            <p class="kit__desc" id="kitDesc"></p>
-          </div>
-        </div>
+    <section class="ch" id="herramientas" data-pose="side" data-tint="#9fd4ff">
+      <div class="ch__text">
+        <p class="kicker">Herramientas</p>
+        <h2>Con lo que trabajo cada semana.</h2>
+        <ul class="tools" id="tools"></ul>
       </div>
     </section>
 
-    <!-- 4 · HERRAMIENTAS (diagrama) -->
-    <section class="section section--surface" id="stack" style="--h:1">
-      <div class="wrap">
-        <div class="head">
-          <h2>Herramientas con las que trabajo</h2>
-          <p class="sub">Lenguajes, plataformas y sistemas que uso cada semana.</p>
+    <section class="ch" id="contacto" data-pose="center">
+      <div class="ch__text ch__text--center">
+        <p class="kicker">Contacto</p>
+        <h2 class="big">¿Tienes un proyecto?</h2>
+        <div class="actions">
+          <a class="btn" href="mailto:hola@s0k1x.example">Enviar un email</a>
+          <a class="btn btn--ghost" href="https://github.com/s0k1x" target="_blank" rel="noopener">GitHub</a>
         </div>
-        <div class="hub" id="hub">
-          <svg class="hub__lines" id="hubLines" aria-hidden="true"></svg>
-          <div class="hub__core" id="hubCore"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 5 · SOBRE MÍ -->
-    <section class="section" id="sobre" style="--h:1">
-      <div class="wrap split">
-        <div class="split__text">
-          <h2>Sobre mí</h2>
-          <p class="big">Me gusta que las cosas sean simples por fuera y sólidas por dentro. Si algo sobra, lo quito.</p>
-          <p class="sub">Empecé haciendo webs para mí y para amigos. Ahora construyo herramientas que me ahorran horas y las comparto para que también te las ahorren a ti.</p>
-          <dl class="rows">
-          <div><dt>Hago</dt><dd>Webs, automatizaciones y skills para IA</dd></div>
-          <div><dt>Uso</dt><dd>JavaScript, Python, Claude y Supabase</dd></div>
-          <div><dt>Ahora</dt><dd>Mejorando s0k1x-skill</dd></div>
-          <div><dt>Busco</dt><dd>Proyectos con gente con ganas</dd></div>
-          <div><dt>Código</dt><dd><a class="link" href="https://github.com/s0k1x" target="_blank" rel="noopener">github.com/s0k1x</a></dd></div>
-          </dl>
-        </div>
-        <div class="me card">
-          <p class="me__bubble">Encantado. Este soy yo, en versión línea fina.</p>
-          <div class="me__av" id="meAvatar"></div>
-        </div>
+        <p class="legal">© <span id="year">2026</span> s0k1x · Los nombres y logos de productos son marcas de sus dueños. Iconos: SVG Logos (CC0), Simple Icons (CC0), VSCode Icons (MIT).</p>
       </div>
     </section>
   </main>
 
-  <!-- 6 · CIERRE + FOOTER -->
-  <footer class="section closing" id="contacto" style="--h:1">
-    <div class="glow glow--low" aria-hidden="true"></div>
-    <div class="wrap closing__grid">
-      <div class="closing__main">
-        <h2 class="closing__title">¿Tienes un proyecto?<br /><span>Escríbeme.</span></h2>
-        <div class="actions">
-          <a class="btn btn--xl" id="mailBtn" href="mailto:hola@s0k1x.example">Enviar un email</a>
-          <button class="btn btn--ghost btn--xl" id="copyBtn" type="button"><span id="copyText">hola@s0k1x.example</span></button>
-        </div>
-      </div>
-      <div class="closing__foot">
-        <nav class="foot__links" aria-label="Pie">
-          <a href="#proyectos">Proyectos</a><a href="#kit">s0k1x-skill</a><a href="#stack">Herramientas</a><a href="#sobre">Sobre mí</a>
-          <a href="https://github.com/s0k1x" target="_blank" rel="noopener">GitHub</a>
-        </nav>
-        <p class="legal">© <span id="year">2026</span> s0k1x · Los nombres y logos de productos son marcas de sus dueños · Iconos: SVG Logos (CC0), Simple Icons (CC0), VSCode Icons (MIT)</p>
-      </div>
-    </div>
-  </footer>
+  <form class="chat" id="chat" autocomplete="off">
+    <input id="chatIn" maxlength="200" placeholder="Escríbele al fantasma…" aria-label="Escríbele al fantasma" />
+    <button class="btn btn--sm" type="submit">Enviar</button>
+  </form>
 </body>
 </html>
