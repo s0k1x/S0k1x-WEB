@@ -2,204 +2,106 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>s0k1x</title>
-  <meta name="description" content="Portfolio de s0k1x: proyectos, lo que hago y cómo contactarme." />
-  <meta name="theme-color" content="#F3F0E8" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23141414'/%3E%3Ccircle cx='23' cy='32' r='8' fill='%23fff'/%3E%3Ccircle cx='41' cy='32' r='8' fill='%23fff'/%3E%3Ccircle cx='24' cy='33' r='3.5' fill='%23141414'/%3E%3Ccircle cx='42' cy='33' r='3.5' fill='%23141414'/%3E%3C/svg%3E" />
+  <meta name="description" content="s0k1x — desarrollador y creador. Cada proyecto es un mundo." />
+  <meta name="theme-color" content="#F4F3EF" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='32' fill='%23111'/%3E%3Ccircle cx='24' cy='34' r='5' fill='%23fff'/%3E%3Ccircle cx='40' cy='34' r='5' fill='%23fff'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <script>
-    try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-  </script>
+  <script>try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script defer src="main.js"></script>
 </head>
 <body>
-  <a class="skip" href="#main">Saltar al contenido</a>
+  <!-- ================= HOME ================= -->
+  <div class="home" id="home">
+    <header class="bar">
+      <button class="brand" data-go="top">s0k1x</button>
+      <nav class="bar-links">
+        <button data-go="mundos">Mundos</button>
+        <button data-go="sobre">Sobre mí</button>
+        <button data-go="contacto">Contacto</button>
+        <button class="theme" id="theme" aria-label="Cambiar tema"><span></span></button>
+      </nav>
+    </header>
 
-  <header class="nav">
-    <a href="#top" class="logo" aria-label="Inicio">s0k1x<span class="logo-dot">.</span></a>
-    <nav class="nav-links" aria-label="Secciones">
-      <a href="#sobre">Sobre mí</a>
-      <a href="#proyectos">Proyectos</a>
-      <a href="#stack">Stack</a>
-      <a href="#contacto">Contacto</a>
-    </nav>
-    <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="sun" d="M12 4V2M12 22v-2M4 12H2m20 0h-2M5.6 5.6 4.2 4.2m15.6 15.6-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4"/><circle cx="12" cy="12" r="4.5"/></svg>
-    </button>
-  </header>
-
-  <main id="main">
-    <!-- HERO -->
     <section class="hero" id="top">
-      <div class="hero-copy">
-        <p class="status reveal"><span class="pulse"></span><span id="statusText">Disponible para proyectos</span></p>
-        <h1 class="hero-title reveal">
-          Hola, soy <span class="hl">s0k1x</span>.<br />
-          <span class="hero-rotator">Construyo <span class="rot" id="rotator">webs</span></span>
-        </h1>
-        <p class="hero-sub reveal" id="heroSub">Desarrollador y creador. Diseño y programo productos digitales limpios, rápidos y con algo de personalidad.</p>
-        <div class="hero-cta reveal">
-          <a href="#proyectos" class="btn btn-primary">Ver proyectos <span aria-hidden="true">→</span></a>
-          <a href="#contacto" class="btn btn-ghost">Hablemos</a>
-        </div>
-        <p class="hint reveal mono">psst… haz clic en mí →</p>
+      <div class="hero-text">
+        <p class="eyebrow mono"><span class="live"></span><span id="status"></span></p>
+        <h1 class="title" id="title">Construyo pequeños <em>mundos</em> en internet.</h1>
+        <p class="lede" id="lede"></p>
+        <button class="cta" data-go="mundos">Explorar mundos <span class="cta-arrow">↓</span></button>
       </div>
-
-      <div class="buddy-slot" id="buddySlot">
-        <div class="halo" aria-hidden="true"></div>
-        <svg class="doodles" viewBox="0 0 400 400" aria-hidden="true">
-          <path class="d d1" d="M60 70 l8 18 20 2 -15 13 5 20 -18 -11 -18 11 5 -20 -15 -13 20 -2 Z" />
-          <g class="d d2"><circle cx="338" cy="96" r="14" /><path d="M338 70v-8M338 130v-8M312 96h-8M372 96h-8M320 78l-6-6M362 120l-6-6M320 114l-6 6M362 72l-6 6" /></g>
-          <path class="d d3" d="M344 300 a26 26 0 1 1 -22 -40 a20 20 0 1 0 22 40 Z" />
-          <path class="d d4" d="M40 290 l5 11 12 1 -9 8 3 12 -11 -7 -11 7 3 -12 -9 -8 12 -1 Z" />
-        </svg>
-        <div class="buddy" id="buddy" role="button" tabindex="0" aria-label="mini-s0k1x, tu guía. Pulsa para que haga algo.">
-          <div class="bubble" id="bubble" aria-live="polite"><span id="bubbleText"></span></div>
-          <div class="zzz" aria-hidden="true"><span>z</span><span>z</span><span>Z</span></div>
-          <svg class="buddy-svg" id="buddySvg" viewBox="0 0 240 300" aria-hidden="true">
-            <defs>
-              <clipPath id="clipBody"><rect x="0" y="0" width="240" height="300" /></clipPath>
-            </defs>
-            <g clip-path="url(#clipBody)">
-              <!-- brazo (detrás del cuerpo) -->
-              <g id="arm" class="arm">
-                <line x1="184" y1="252" x2="220" y2="186" class="limb-out" />
-                <line x1="184" y1="252" x2="220" y2="186" class="limb-in" />
-                <g id="phone" class="phone">
-                  <rect x="206" y="146" width="26" height="44" rx="6" class="phone-body" />
-                  <circle cx="214" cy="155" r="3" class="phone-cam" />
-                  <circle cx="214" cy="164" r="3" class="phone-cam" />
-                </g>
-                <circle cx="222" cy="180" r="12" class="skin stroke" />
-              </g>
-
-              <!-- cuerpo -->
-              <g class="torso">
-                <path d="M104 192 L104 220 Q120 230 136 220 L136 192 Z" class="skin stroke" />
-                <path d="M34 312 C34 252 58 224 96 214 Q120 230 144 214 C182 224 206 252 206 312 Z" class="shirt stroke" />
-                <path d="M96 214 Q120 236 144 214" class="line" />
-                <path d="M56 246 L84 222 M62 256 L90 230" class="stripe" />
-                <path d="M184 246 L156 222 M178 256 L150 230" class="stripe" />
-                <text x="120" y="272" class="shirt-mark" text-anchor="middle">s0</text>
-              </g>
-
-              <!-- cabeza -->
-              <g id="head" class="head">
-                <circle cx="64" cy="138" r="12" class="skin stroke" />
-                <circle cx="176" cy="138" r="12" class="skin stroke" />
-                <path d="M66 122 C66 80 92 62 120 62 C150 62 174 80 174 122 C174 170 150 198 120 198 C90 198 66 170 66 122 Z" class="skin stroke" />
-                <!-- degradado lateral (fade) -->
-                <path d="M68 128 Q66 112 73 100 L79 120 Z" class="fade" />
-                <path d="M172 128 Q174 112 167 100 L161 120 Z" class="fade" />
-
-                <g id="face" class="face">
-                  <ellipse cx="85" cy="162" rx="8" ry="4.5" class="blush" />
-                  <ellipse cx="155" cy="162" rx="8" ry="4.5" class="blush" />
-                  <g class="freckles">
-                    <circle cx="92" cy="155" r="1.3" /><circle cx="97" cy="159" r="1.3" /><circle cx="88" cy="158" r="1.1" />
-                    <circle cx="148" cy="155" r="1.3" /><circle cx="143" cy="159" r="1.3" /><circle cx="152" cy="158" r="1.1" />
-                  </g>
-
-                  <g id="eyes" class="eyes">
-                    <circle cx="100" cy="133" r="12.5" class="eye-white" />
-                    <circle cx="140" cy="133" r="12.5" class="eye-white" />
-                    <g id="pupils">
-                      <circle cx="100" cy="134" r="6" class="pupil" />
-                      <circle cx="140" cy="134" r="6" class="pupil" />
-                      <circle cx="102.5" cy="131" r="2" class="glint" />
-                      <circle cx="142.5" cy="131" r="2" class="glint" />
-                    </g>
-                  </g>
-
-                  <!-- gafas -->
-                  <g class="glasses">
-                    <rect x="79" y="117" width="41" height="32" rx="7" class="lens" />
-                    <rect x="120" y="117" width="41" height="32" rx="7" class="lens" />
-                    <path d="M79 126 L67 123 M161 126 L173 123" class="frame" />
-                    <path d="M86 123 L93 121" class="lens-shine" />
-                    <path d="M127 123 L134 121" class="lens-shine" />
-                  </g>
-
-                  <path d="M121 140 Q126 152 117 154" class="nose" />
-                  <path d="M109 164 Q120 160 131 164" class="stache" />
-                  <path id="mouth" d="M106 169 Q120 182 134 169" class="mouth" />
-                </g>
-
-                <!-- pelo rizado -->
-                <g id="hair" class="hair">
-                  <circle cx="80" cy="92" r="15" /><circle cx="94" cy="72" r="18" /><circle cx="117" cy="62" r="19" />
-                  <circle cx="141" cy="65" r="18" /><circle cx="160" cy="80" r="16" /><circle cx="168" cy="98" r="10" />
-                  <circle cx="73" cy="106" r="8" />
-                  <circle cx="90" cy="90" r="12" /><circle cx="109" cy="84" r="13" /><circle cx="130" cy="83" r="13" />
-                  <circle cx="150" cy="90" r="11" /><circle cx="119" cy="95" r="7" />
-                  <path d="M104 74 q6 -6 12 0 M131 70 q6 -5 11 1 M86 82 q5 -5 10 0 M148 82 q5 -4 9 1" class="curl" />
-                </g>
-
-                <g id="brows" class="brows">
-                  <path id="browL" d="M86 110 Q99 103 112 109" class="brow" />
-                  <path id="browR" d="M128 109 Q141 103 154 110" class="brow" />
-                </g>
-              </g>
-            </g>
-          </svg>
-        </div>
+      <div class="stage" id="heroStage">
+        <div class="horizon"></div>
       </div>
     </section>
 
-    <!-- MARQUEE -->
-    <div class="marquee" aria-hidden="true">
-      <div class="marquee-track" id="marquee"></div>
-    </div>
+    <section class="block" id="mundos">
+      <div class="block-head">
+        <h2 class="h2">Mundos <span class="count mono" id="count"></span></h2>
+        <p class="muted">Cada proyecto es un lugar distinto. Entra en uno.</p>
+      </div>
+      <ol class="worlds" id="worldList"></ol>
+    </section>
 
-    <!-- SOBRE MI -->
-    <section class="section" id="sobre">
-      <p class="label mono reveal">01 — Sobre mí</p>
+    <section class="block" id="sobre">
+      <div class="block-head"><h2 class="h2">Sobre mí</h2></div>
       <div class="about">
-        <h2 class="section-title reveal" id="aboutTitle">Me gusta convertir ideas raras en cosas que funcionan.</h2>
-        <div class="about-body reveal" id="aboutBody"></div>
-      </div>
-      <div class="stats" id="stats"></div>
-    </section>
-
-    <!-- PROYECTOS -->
-    <section class="section" id="proyectos">
-      <p class="label mono reveal">02 — Proyectos</p>
-      <div class="section-head">
-        <h2 class="section-title reveal">Cosas que he hecho.</h2>
-        <a class="link-arrow reveal" id="ghAll" href="https://github.com/s0k1x" target="_blank" rel="noopener">Todo en GitHub ↗</a>
-      </div>
-      <div class="projects" id="projects">
-        <div class="project skeleton"></div><div class="project skeleton"></div><div class="project skeleton"></div>
+        <p class="about-big" id="aboutBig"></p>
+        <dl class="facts" id="facts"></dl>
       </div>
     </section>
 
-    <!-- STACK -->
-    <section class="section" id="stack">
-      <p class="label mono reveal">03 — Stack</p>
-      <h2 class="section-title reveal">Con lo que trabajo.</h2>
-      <ul class="chips" id="chips"></ul>
+    <section class="block contact" id="contacto">
+      <div class="block-head"><h2 class="h2">Contacto</h2></div>
+      <p class="contact-big">¿Tienes una idea? <em>Escríbeme.</em></p>
+      <button class="mail" id="mail"><span id="mailText"></span><span class="mail-tag mono" id="mailTag">copiar</span></button>
+      <ul class="socials" id="socials"></ul>
     </section>
 
-    <!-- CONTACTO -->
-    <section class="section contact" id="contacto">
-      <p class="label mono reveal">04 — Contacto</p>
-      <h2 class="contact-title reveal">¿Tienes una idea?<br /><span class="hl">Hablemos.</span></h2>
-      <div class="contact-row reveal">
-        <button class="email-btn" id="emailBtn"><span id="emailText"></span><span class="copy mono" id="copyLabel">copiar</span></button>
+    <footer class="foot mono">
+      <span>© <span id="year"></span> s0k1x</span>
+      <span class="muted">pulsa al personaje · escribe <kbd>s0k1x</kbd></span>
+    </footer>
+
+    <div class="preview" id="preview" aria-hidden="true"></div>
+  </div>
+
+  <!-- ================= WORLD ================= -->
+  <div class="world" id="world" hidden>
+    <header class="world-bar">
+      <button class="w-btn" id="wBack">← s0k1x</button>
+      <span class="mono w-count" id="wCount"></span>
+      <div class="w-nav">
+        <button class="w-btn" id="wPrev" aria-label="Mundo anterior">←</button>
+        <button class="w-btn" id="wNext" aria-label="Mundo siguiente">→</button>
       </div>
-      <ul class="socials reveal" id="socials"></ul>
+    </header>
+    <section class="w-stage">
+      <div class="w-scene" id="wScene"></div>
+      <div class="w-buddy" id="wBuddy"></div>
+      <div class="w-info">
+        <p class="mono w-kicker" id="wKicker"></p>
+        <h1 class="w-title" id="wTitle"></h1>
+        <p class="w-desc" id="wDesc"></p>
+        <div class="w-meta mono" id="wMeta"></div>
+        <div class="w-actions" id="wActions"></div>
+      </div>
+      <button class="w-scroll mono" id="wScroll">leer más ↓</button>
     </section>
-  </main>
+    <section class="w-readme">
+      <div class="w-readme-inner">
+        <p class="mono w-kicker">README</p>
+        <article class="md" id="wReadme"></article>
+      </div>
+    </section>
+  </div>
 
-  <footer class="footer">
-    <p class="mono">© <span id="year"></span> s0k1x · hecho a mano</p>
-    <p class="mono muted">escribe <kbd>s0k1x</kbd> en cualquier parte ;)</p>
-  </footer>
-
-  <div class="flash" id="flash" aria-hidden="true"></div>
-  <script src="main.js"></script>
+  <div class="portal" id="portal" aria-hidden="true"></div>
 </body>
 </html>
