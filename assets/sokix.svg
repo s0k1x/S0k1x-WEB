@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-labelledby="t d">
+  <title id="t">Sokix</title>
+  <desc id="d">Criatura original de tipo eléctrico, estilo monstruo de bolsillo: un zorrito azul con cola de rayo y gema en la frente.</desc>
+  <defs>
+    <radialGradient id="aura" cx="50%" cy="55%" r="50%">
+      <stop offset="0" stop-color="#4c8dff" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#4c8dff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tailG" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3a6fe0"/>
+      <stop offset=".55" stop-color="#5fb4ff"/>
+      <stop offset="1" stop-color="#a9f6ff"/>
+    </linearGradient>
+    <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6aa2ff"/>
+      <stop offset="1" stop-color="#4c8dff"/>
+    </linearGradient>
+    <radialGradient id="gemG" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".4" stop-color="#9ff7ff"/>
+      <stop offset="1" stop-color="#22c3e6"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="bodyClip"><ellipse cx="200" cy="272" rx="60" ry="62"/></clipPath>
+    <clipPath id="headClip"><ellipse cx="200" cy="168" rx="80" ry="70"/></clipPath>
+    <clipPath id="earL"><path d="M146 126 Q112 82 98 26 Q152 50 184 104 Z"/></clipPath>
+    <clipPath id="earR"><path d="M254 126 Q288 82 302 26 Q248 50 216 104 Z"/></clipPath>
+    <style>
+      .ol { stroke: #141833; stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+      .bob { animation: bob 2.6s ease-in-out infinite; }
+      .tail { transform-origin: 245px 305px; animation: wag 1.3s ease-in-out infinite; }
+      .eye { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
+      .spark { animation: flick 1.6s steps(2) infinite; }
+      .spark.s2 { animation-delay: .5s; }
+      .spark.s3 { animation-delay: 1s; }
+      .gem { animation: pulse 2.6s ease-in-out infinite; }
+      .shadow { transform-box: fill-box; transform-origin: center; animation: shadow 2.6s ease-in-out infinite; }
+      @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+      @keyframes wag { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
+      @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+      @keyframes flick { 0% { opacity: 1; } 100% { opacity: .15; } }
+      @keyframes pulse { 0%, 100% { opacity: .85; } 50% { opacity: 1; } }
+      @keyframes shadow { 0%, 100% { transform: scaleX(1); opacity: .5; } 50% { transform: scaleX(.85); opacity: .3; } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+    </style>
+  </defs>
+
+  <!-- aura y sombra -->
+  <circle cx="200" cy="215" r="185" fill="url(#aura)"/>
+  <ellipse class="shadow" cx="200" cy="352" rx="92" ry="13" fill="#000" opacity=".5"/>
+
+  <g class="bob">
+    <!-- cola de rayo -->
+    <g class="tail">
+      <path class="ol" fill="url(#tailG)"
+        d="M236 306 L300 284 L284 250 L346 230 L330 196 L380 158 L364 222 L384 230 L322 268 L338 278 L252 330 Z"/>
+      <path d="M300 284 L284 250 L346 230 L330 196 L370 170" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>
+    </g>
+
+    <!-- pies -->
+    <ellipse class="ol" cx="168" cy="330" rx="27" ry="14" fill="#3166d6"/>
+    <ellipse class="ol" cx="232" cy="330" rx="27" ry="14" fill="#3166d6"/>
+    <path d="M156 326 v8 M168 324 v10 M244 326 v8 M232 324 v10" stroke="#141833" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- cuerpo -->
+    <ellipse class="ol" cx="200" cy="272" rx="60" ry="62" fill="url(#bodyG)"/>
+    <g clip-path="url(#bodyClip)">
+      <ellipse cx="150" cy="285" rx="40" ry="80" fill="#3166d6" opacity=".7"/>
+    </g>
+    <ellipse cx="203" cy="284" rx="36" ry="40" fill="#eef4ff"/>
+    <path d="M190 262 L206 262 L198 278 L214 278 L192 304 L198 286 L184 286 Z" fill="#4c8dff" opacity=".35"/>
+    <ellipse class="ol" cx="200" cy="272" rx="60" ry="62" fill="none"/>
+
+    <!-- brazos -->
+    <ellipse class="ol" cx="148" cy="262" rx="13" ry="20" fill="#5a98ff" transform="rotate(30 148 262)"/>
+    <ellipse class="ol" cx="252" cy="262" rx="13" ry="20" fill="#5a98ff" transform="rotate(-30 252 262)"/>
+
+    <!-- orejas -->
+    <g>
+      <path class="ol" fill="#4c8dff" d="M146 126 Q112 82 98 26 Q152 50 184 104 Z"/>
+      <g clip-path="url(#earL)">
+        <path d="M80 10 L150 10 L128 66 L80 70 Z" fill="#141833"/>
+        <path d="M132 112 Q118 86 112 58 Q146 76 166 104 Z" fill="#9ff7ff" opacity=".8"/>
+      </g>
+      <path class="ol" fill="none" d="M146 126 Q112 82 98 26 Q152 50 184 104 Z"/>
+    </g>
+    <g>
+      <path class="ol" fill="#4c8dff" d="M254 126 Q288 82 302 26 Q248 50 216 104 Z"/>
+      <g clip-path="url(#earR)">
+        <path d="M320 10 L250 10 L272 66 L320 70 Z" fill="#141833"/>
+        <path d="M268 112 Q282 86 288 58 Q254 76 234 104 Z" fill="#9ff7ff" opacity=".8"/>
+      </g>
+      <path class="ol" fill="none" d="M254 126 Q288 82 302 26 Q248 50 216 104 Z"/>
+    </g>
+
+    <!-- cabeza -->
+    <ellipse class="ol" cx="200" cy="168" rx="80" ry="70" fill="url(#bodyG)"/>
+    <g clip-path="url(#headClip)">
+      <ellipse cx="140" cy="190" rx="44" ry="90" fill="#3166d6" opacity=".55"/>
+      <ellipse cx="200" cy="214" rx="56" ry="34" fill="#eef4ff"/>
+    </g>
+    <!-- mechón -->
+    <path class="ol" fill="#6aa2ff" d="M176 104 L188 80 L198 100 L212 76 L222 104 Z"/>
+    <ellipse class="ol" cx="200" cy="168" rx="80" ry="70" fill="none"/>
+
+    <!-- gema -->
+    <path class="ol gem" fill="url(#gemG)" filter="url(#glow)" d="M200 108 L212 124 L200 140 L188 124 Z"/>
+    <path d="M196 116 L200 111 L204 116" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+    <!-- ojos -->
+    <g class="eye">
+      <ellipse cx="168" cy="172" rx="15" ry="21" fill="#141833"/>
+      <ellipse cx="168" cy="182" rx="10" ry="9" fill="#2f7bff"/>
+      <circle cx="162" cy="162" r="6.5" fill="#fff"/>
+      <circle cx="173" cy="184" r="3" fill="#fff"/>
+    </g>
+    <g class="eye">
+      <ellipse cx="232" cy="172" rx="15" ry="21" fill="#141833"/>
+      <ellipse cx="232" cy="182" rx="10" ry="9" fill="#2f7bff"/>
+      <circle cx="226" cy="162" r="6.5" fill="#fff"/>
+      <circle cx="237" cy="184" r="3" fill="#fff"/>
+    </g>
+
+    <!-- nariz y boca -->
+    <path d="M196 196 Q200 192 204 196 Q200 200 196 196 Z" fill="#141833"/>
+    <path class="ol" d="M186 206 Q200 228 214 206 Q200 212 186 206 Z" fill="#7a1f3d" stroke-width="3.5"/>
+    <path d="M193 214 Q200 222 207 214 Q200 216 193 214 Z" fill="#ff7a9c"/>
+    <path d="M214 206 l3 -3" stroke="#141833" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- mejillas eléctricas -->
+    <g filter="url(#glow)">
+      <circle cx="140" cy="198" r="10" fill="#7ef9ff"/>
+      <circle cx="260" cy="198" r="10" fill="#7ef9ff"/>
+    </g>
+    <path d="M136 194 l6 4 l-6 4 M264 194 l-6 4 l6 4" stroke="#1aa8c9" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- chispas -->
+  <g fill="#bff9ff" stroke="#141833" stroke-width="2.5" stroke-linejoin="round" filter="url(#glow)">
+    <path class="spark" d="M70 150 L86 142 L80 156 L94 152 L74 174 L80 160 L66 164 Z"/>
+    <path class="spark s2" d="M330 90 L342 84 L338 96 L348 93 L332 110 L336 100 L326 102 Z"/>
+    <path class="spark s3" d="M78 268 L88 263 L85 272 L94 270 L80 284 L83 276 L74 278 Z"/>
+  </g>
+</svg>
