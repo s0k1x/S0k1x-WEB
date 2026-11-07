@@ -1,147 +1,128 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-labelledby="t d">
-  <title id="t">Sokix</title>
-  <desc id="d">Criatura original de tipo eléctrico, estilo monstruo de bolsillo: un zorrito azul con cola de rayo y gema en la frente.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-labelledby="sokix-t sokix-d">
+  <title id="sokix-t">Sokix</title>
+  <desc id="sokix-d">Aparición etérea: silueta blanca y luminosa con cabeza de púas, ojos entrecerrados oscuros y una sonrisa enorme con dos colmillos, flotando sobre fondo negro.</desc>
+  <!--
+    RIG · piezas con id y pivote (coordenadas del viewBox 400×400, transform-box: view-box)
+      #sokix   figura completa (flotar)    200 240
+      #arm-l   brazo izquierdo             116 252
+      #arm-r   brazo derecho               284 252
+      #eye-l / #eye-r  (scaleY = parpadeo) 158 180 / 242 180
+      #mouth   sonrisa                     200 238
+      #halo    resplandor (opacidad/escala) 200 210
+  -->
   <defs>
-    <radialGradient id="aura" cx="50%" cy="55%" r="50%">
-      <stop offset="0" stop-color="#4c8dff" stop-opacity=".45"/>
-      <stop offset="1" stop-color="#4c8dff" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="tailG" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#3a6fe0"/>
-      <stop offset=".55" stop-color="#5fb4ff"/>
-      <stop offset="1" stop-color="#a9f6ff"/>
-    </linearGradient>
-    <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#6aa2ff"/>
-      <stop offset="1" stop-color="#4c8dff"/>
-    </linearGradient>
-    <radialGradient id="gemG" cx="40%" cy="35%" r="70%">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset=".4" stop-color="#9ff7ff"/>
-      <stop offset="1" stop-color="#22c3e6"/>
-    </radialGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3.5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <!-- resplandor: halo ancho + halo cercano + figura -->
+    <filter id="sx-glow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="22" result="far"/>
+      <feFlood flood-color="#ffffff" flood-opacity=".55"/>
+      <feComposite in2="far" operator="in" result="farGlow"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="near"/>
+      <feFlood flood-color="#ffffff" flood-opacity=".9"/>
+      <feComposite in2="near" operator="in" result="nearGlow"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="soft"/>
+      <feMerge>
+        <feMergeNode in="farGlow"/>
+        <feMergeNode in="nearGlow"/>
+        <feMergeNode in="soft"/>
+      </feMerge>
     </filter>
-    <clipPath id="bodyClip"><ellipse cx="200" cy="272" rx="60" ry="62"/></clipPath>
-    <clipPath id="headClip"><ellipse cx="200" cy="168" rx="80" ry="70"/></clipPath>
-    <clipPath id="earL"><path d="M146 126 Q112 82 98 26 Q152 50 184 104 Z"/></clipPath>
-    <clipPath id="earR"><path d="M254 126 Q288 82 302 26 Q248 50 216 104 Z"/></clipPath>
+    <filter id="sx-soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.4"/>
+    </filter>
+    <filter id="sx-blur-far" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+    <radialGradient id="sx-body" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".75" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e9edf5"/>
+    </radialGradient>
+    <radialGradient id="sx-mouth" cx="50%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#3a3b44"/>
+      <stop offset=".6" stop-color="#1e1f26"/>
+      <stop offset="1" stop-color="#111116"/>
+    </radialGradient>
+
+    <path id="sx-eye-l-shape" d="M122 160 C146 162 170 168 190 178 C188 190 176 196 162 194 C144 191 130 178 122 160 Z"/>
+    <path id="sx-mouth-shape" d="M112 196 Q200 232 288 196 Q270 272 200 278 Q130 272 112 196 Z"/>
+    <clipPath id="sx-mouth-c"><use href="#sx-mouth-shape"/></clipPath>
+
     <style>
-      .ol { stroke: #141833; stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
-      .bob { animation: bob 2.6s ease-in-out infinite; }
-      .tail { transform-origin: 245px 305px; animation: wag 1.3s ease-in-out infinite; }
-      .eye { transform-box: fill-box; transform-origin: center; animation: blink 4.5s infinite; }
-      .spark { animation: flick 1.6s steps(2) infinite; }
-      .spark.s2 { animation-delay: .5s; }
-      .spark.s3 { animation-delay: 1s; }
-      .gem { animation: pulse 2.6s ease-in-out infinite; }
-      .shadow { transform-box: fill-box; transform-origin: center; animation: shadow 2.6s ease-in-out infinite; }
-      @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-      @keyframes wag { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
-      @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-      @keyframes flick { 0% { opacity: 1; } 100% { opacity: .15; } }
-      @keyframes pulse { 0%, 100% { opacity: .85; } 50% { opacity: 1; } }
-      @keyframes shadow { 0%, 100% { transform: scaleX(1); opacity: .5; } 50% { transform: scaleX(.85); opacity: .3; } }
-      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+      #sokix * { transform-box: view-box; }
+      .w { fill: url(#sx-body); }
+
+      /* idle (borra este bloque si lo quieres estático) */
+      #sokix { transform-origin: 200px 240px; animation: sx-float 3.2s ease-in-out infinite; }
+      #arm-l { transform-origin: 116px 252px; animation: sx-arm-l 3.2s ease-in-out infinite; }
+      #arm-r { transform-origin: 284px 252px; animation: sx-arm-r 3.2s ease-in-out infinite; }
+      #eye-l { transform-origin: 158px 180px; animation: sx-blink 5s infinite; }
+      #eye-r { transform-origin: 242px 180px; animation: sx-blink 5s infinite; }
+      #mouth { transform-origin: 200px 238px; animation: sx-grin 3.2s ease-in-out infinite; }
+      #halo  { transform-origin: 200px 210px; animation: sx-halo 3.2s ease-in-out infinite; }
+      @keyframes sx-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+      @keyframes sx-arm-l { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(7deg); } }
+      @keyframes sx-arm-r { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-7deg); } }
+      @keyframes sx-blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.15); } }
+      @keyframes sx-grin  { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03, .97); } }
+      @keyframes sx-halo  { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: .8; transform: scale(1.06); } }
+      @media (prefers-reduced-motion: reduce) { #sokix, #sokix * { animation: none !important; } }
     </style>
   </defs>
 
-  <!-- aura y sombra -->
-  <circle cx="200" cy="215" r="185" fill="url(#aura)"/>
-  <ellipse class="shadow" cx="200" cy="352" rx="92" ry="13" fill="#000" opacity=".5"/>
+  <rect width="400" height="400" fill="#000"/>
 
-  <g class="bob">
-    <!-- cola de rayo -->
-    <g class="tail">
-      <path class="ol" fill="url(#tailG)"
-        d="M236 306 L300 284 L284 250 L346 230 L330 196 L380 158 L364 222 L384 230 L322 268 L338 278 L252 330 Z"/>
-      <path d="M300 284 L284 250 L346 230 L330 196 L370 170" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>
-    </g>
+  <g id="sokix">
+    <!-- halo lejano que se funde con el fondo -->
+    <ellipse id="halo" cx="200" cy="205" rx="150" ry="140" fill="#ffffff" opacity=".6" filter="url(#sx-blur-far)"/>
 
-    <!-- pies -->
-    <ellipse class="ol" cx="168" cy="330" rx="27" ry="14" fill="#3166d6"/>
-    <ellipse class="ol" cx="232" cy="330" rx="27" ry="14" fill="#3166d6"/>
-    <path d="M156 326 v8 M168 324 v10 M244 326 v8 M232 324 v10" stroke="#141833" stroke-width="3" stroke-linecap="round"/>
-
-    <!-- cuerpo -->
-    <ellipse class="ol" cx="200" cy="272" rx="60" ry="62" fill="url(#bodyG)"/>
-    <g clip-path="url(#bodyClip)">
-      <ellipse cx="150" cy="285" rx="40" ry="80" fill="#3166d6" opacity=".7"/>
-    </g>
-    <ellipse cx="203" cy="284" rx="36" ry="40" fill="#eef4ff"/>
-    <path d="M190 262 L206 262 L198 278 L214 278 L192 304 L198 286 L184 286 Z" fill="#4c8dff" opacity=".35"/>
-    <ellipse class="ol" cx="200" cy="272" rx="60" ry="62" fill="none"/>
-
-    <!-- brazos -->
-    <ellipse class="ol" cx="148" cy="262" rx="13" ry="20" fill="#5a98ff" transform="rotate(30 148 262)"/>
-    <ellipse class="ol" cx="252" cy="262" rx="13" ry="20" fill="#5a98ff" transform="rotate(-30 252 262)"/>
-
-    <!-- orejas -->
-    <g>
-      <path class="ol" fill="#4c8dff" d="M146 126 Q112 82 98 26 Q152 50 184 104 Z"/>
-      <g clip-path="url(#earL)">
-        <path d="M80 10 L150 10 L128 66 L80 70 Z" fill="#141833"/>
-        <path d="M132 112 Q118 86 112 58 Q146 76 166 104 Z" fill="#9ff7ff" opacity=".8"/>
+    <!-- silueta blanca (todas las piezas se funden en una sola forma) -->
+    <g id="silhouette" filter="url(#sx-glow)">
+      <!-- brazos cortos y gruesos, levantados hacia fuera -->
+      <g id="arm-l" class="w">
+        <path d="M130 228 C110 220 86 200 70 178 L40 202 C62 232 96 262 126 280 Z"/>
+        <path d="M56 160 C72 158 84 172 82 188 C80 206 64 214 50 212 C36 210 28 198 30 184 C32 170 42 161 56 160 Z"/>
       </g>
-      <path class="ol" fill="none" d="M146 126 Q112 82 98 26 Q152 50 184 104 Z"/>
-    </g>
-    <g>
-      <path class="ol" fill="#4c8dff" d="M254 126 Q288 82 302 26 Q248 50 216 104 Z"/>
-      <g clip-path="url(#earR)">
-        <path d="M320 10 L250 10 L272 66 L320 70 Z" fill="#141833"/>
-        <path d="M268 112 Q282 86 288 58 Q254 76 234 104 Z" fill="#9ff7ff" opacity=".8"/>
+      <g id="arm-r" class="w">
+        <path d="M270 228 C290 220 314 200 330 178 L360 202 C338 232 304 262 274 280 Z"/>
+        <path d="M344 160 C328 158 316 172 318 188 C320 206 336 214 350 212 C364 210 372 198 370 184 C368 170 358 161 344 160 Z"/>
       </g>
-      <path class="ol" fill="none" d="M254 126 Q288 82 302 26 Q248 50 216 104 Z"/>
+
+      <g class="w">
+        <!-- torso hinchado, termina en punta suave (flota) -->
+        <path d="M200 340 C178 326 116 306 106 256 C98 214 118 186 140 172 L260 172 C282 186 302 214 294 256 C284 306 222 326 200 340 Z"/>
+        <!-- cabeza ancha y plana -->
+        <path d="M110 178 C106 140 130 116 200 114 C270 116 294 140 290 178 C288 204 252 220 200 220 C148 220 112 204 110 178 Z"/>
+        <!-- dos púas principales, inclinadas hacia fuera -->
+        <path d="M128 136 Q118 92 106 34 Q148 74 182 120 Z"/>
+        <path d="M272 136 Q282 92 294 34 Q252 74 218 120 Z"/>
+        <!-- púa central pequeña -->
+        <path d="M184 118 L200 88 L216 118 Z"/>
+        <!-- púas laterales horizontales -->
+        <path d="M118 132 L54 118 L112 160 Z"/>
+        <path d="M110 158 L40 168 L110 190 Z"/>
+        <path d="M282 132 L346 118 L288 160 Z"/>
+        <path d="M290 158 L360 168 L290 190 Z"/>
+        <!-- protuberancias traseras-inferiores -->
+        <path d="M114 192 L76 206 L114 214 Z"/>
+        <path d="M286 192 L324 206 L286 214 Z"/>
+      </g>
     </g>
 
-    <!-- cabeza -->
-    <ellipse class="ol" cx="200" cy="168" rx="80" ry="70" fill="url(#bodyG)"/>
-    <g clip-path="url(#headClip)">
-      <ellipse cx="140" cy="190" rx="44" ry="90" fill="#3166d6" opacity=".55"/>
-      <ellipse cx="200" cy="214" rx="56" ry="34" fill="#eef4ff"/>
-    </g>
-    <!-- mechón -->
-    <path class="ol" fill="#6aa2ff" d="M176 104 L188 80 L198 100 L212 76 L222 104 Z"/>
-    <ellipse class="ol" cx="200" cy="168" rx="80" ry="70" fill="none"/>
-
-    <!-- gema -->
-    <path class="ol gem" fill="url(#gemG)" filter="url(#glow)" d="M200 108 L212 124 L200 140 L188 124 Z"/>
-    <path d="M196 116 L200 111 L204 116" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-
-    <!-- ojos -->
-    <g class="eye">
-      <ellipse cx="168" cy="172" rx="15" ry="21" fill="#141833"/>
-      <ellipse cx="168" cy="182" rx="10" ry="9" fill="#2f7bff"/>
-      <circle cx="162" cy="162" r="6.5" fill="#fff"/>
-      <circle cx="173" cy="184" r="3" fill="#fff"/>
-    </g>
-    <g class="eye">
-      <ellipse cx="232" cy="172" rx="15" ry="21" fill="#141833"/>
-      <ellipse cx="232" cy="182" rx="10" ry="9" fill="#2f7bff"/>
-      <circle cx="226" cy="162" r="6.5" fill="#fff"/>
-      <circle cx="237" cy="184" r="3" fill="#fff"/>
+    <!-- ojos entrecerrados, sólidos, sin pupila -->
+    <g filter="url(#sx-soft)" fill="#16161b">
+      <g id="eye-l"><use href="#sx-eye-l-shape"/></g>
+      <g id="eye-r"><use href="#sx-eye-l-shape" transform="translate(400 0) scale(-1 1)"/></g>
     </g>
 
-    <!-- nariz y boca -->
-    <path d="M196 196 Q200 192 204 196 Q200 200 196 196 Z" fill="#141833"/>
-    <path class="ol" d="M186 206 Q200 228 214 206 Q200 212 186 206 Z" fill="#7a1f3d" stroke-width="3.5"/>
-    <path d="M193 214 Q200 222 207 214 Q200 216 193 214 Z" fill="#ff7a9c"/>
-    <path d="M214 206 l3 -3" stroke="#141833" stroke-width="3" stroke-linecap="round"/>
-
-    <!-- mejillas eléctricas -->
-    <g filter="url(#glow)">
-      <circle cx="140" cy="198" r="10" fill="#7ef9ff"/>
-      <circle cx="260" cy="198" r="10" fill="#7ef9ff"/>
+    <!-- sonrisa exagerada con dos colmillos -->
+    <g id="mouth" filter="url(#sx-soft)">
+      <use href="#sx-mouth-shape" fill="url(#sx-mouth)"/>
+      <g clip-path="url(#sx-mouth-c)" fill="#b9bdc8">
+        <path d="M142 200 L158 248 L174 206 Z"/>
+        <path d="M258 200 L242 248 L226 206 Z"/>
+      </g>
+      <!-- labio superior grueso y redondeado -->
+      <path d="M112 196 Q200 232 288 196" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity=".9"/>
     </g>
-    <path d="M136 194 l6 4 l-6 4 M264 194 l-6 4 l6 4" stroke="#1aa8c9" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-
-  <!-- chispas -->
-  <g fill="#bff9ff" stroke="#141833" stroke-width="2.5" stroke-linejoin="round" filter="url(#glow)">
-    <path class="spark" d="M70 150 L86 142 L80 156 L94 152 L74 174 L80 160 L66 164 Z"/>
-    <path class="spark s2" d="M330 90 L342 84 L338 96 L348 93 L332 110 L336 100 L326 102 Z"/>
-    <path class="spark s3" d="M78 268 L88 263 L85 272 L94 270 L80 284 L83 276 L74 278 Z"/>
   </g>
 </svg>
