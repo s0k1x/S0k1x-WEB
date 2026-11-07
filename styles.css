@@ -102,3 +102,14 @@ h2.big { font-size: clamp(40px, 6vw, 84px); line-height: 1; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: 1ms !important; animation: none !important; } }
 #contacto { align-items: flex-end; padding-bottom: 110px; }
+
+/* animaciones sutiles */
+.ch__text > * { opacity: 0; translate: 0 16px; transition: opacity .9s var(--ease), translate .9s var(--ease); transition-delay: calc(var(--i, 0) * 80ms); }
+.ch.in .ch__text > * { opacity: 1; translate: 0 0; }
+.progress { position: fixed; z-index: 11; left: 0; top: 0; height: 1px; width: 100%; background: linear-gradient(90deg, var(--accent), #fff); transform-origin: 0 50%; transform: scaleX(0); }
+.nav__links a { position: relative; }
+.nav__links a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .3s var(--ease); }
+.nav__links a:hover::after { transform: scaleX(1); transform-origin: left; }
+.chat { transition: border-color .3s, box-shadow .3s; }
+.chat:focus-within { border-color: #3a3a3a; box-shadow: 0 0 0 4px rgba(76, 141, 255, .12); }
+@media (prefers-reduced-motion: reduce) { .ch__text > * { opacity: 1; translate: none; } }
