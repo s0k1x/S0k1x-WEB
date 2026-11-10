@@ -36,8 +36,11 @@
 </style>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="anim.css">
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js"><link rel="modulepreload" href="assets/moments/lib.js"><link rel="modulepreload" href="assets/moments/iris-opens/moment.js">
 </head>
 <body>
+<!-- deal: software · palette blue-black-cornflower · familjen · hero centred · effect silk-folds (hero__window) · moment iris-opens (#mas) -->
 <header class="nav">
   <div class="wrap nav__bar">
     <a class="nav__logo" href="#top"><span class="ly-mark" aria-hidden="true"></span>s0k1x</a>
@@ -66,7 +69,7 @@
           <a class="btn btn--secondary" href="https://github.com/s0k1x" target="_blank" rel="noopener">Ver mi GitHub</a>
         </div>
       </div>
-      <div class="hero__window">
+      <div class="hero__window" data-fx="silk-folds" data-fx-seed="11" data-fx-palette='{"bg":"#0a0d14","surface":"#132238","ink":"#e9edf3","muted":"#8891a1","accent":"#5ab9fc","accentInk":"#0a0d14"}'>
         <div class="ly-piece d-win d-win--dark" id="win">
           <div class="d-win__bar">
             <span class="d-win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -78,10 +81,10 @@
             </div>
           </div>
           <a class="win__screen m-zoom" id="winLink" href="https://s0k1x.github.io/s0k1x-skill/docs/" target="_blank" rel="noopener">
-            <img class="is-on" src="assets/proyectos/s0k1x-skill.jpg" alt="Documentación de s0k1x-skill" width="1280" height="800" fetchpriority="high" data-href="https://s0k1x.github.io/s0k1x-skill/docs/">
-            <img src="assets/proyectos/innra3d.jpg" alt="Portada de INNRA3D" width="1280" height="800" loading="lazy" hidden data-href="https://s0k1x.github.io/INNRA3D/">
-            <img src="assets/proyectos/aurevix-os-2.jpg" alt="Los niveles de rendimiento de AUREVIX OS" width="1280" height="800" loading="lazy" hidden data-href="https://s0k1x.github.io/aurevix-OS/">
-            <img src="assets/proyectos/malaga-reventa.jpg" alt="Portada de Reventa.Malaga" width="1280" height="800" loading="lazy" hidden data-href="https://s0k1x.github.io/Malaga-reventa/">
+            <img class="is-on" src="assets/proyectos/s0k1x-skill.jpg" srcset="assets/proyectos/s0k1x-skill-640.jpg 640w, assets/proyectos/s0k1x-skill.jpg 1280w" sizes="(max-width: 639px) 92vw, 880px" alt="Documentación de s0k1x-skill" width="1280" height="800" fetchpriority="high" data-href="https://s0k1x.github.io/s0k1x-skill/docs/">
+            <img src="assets/proyectos/innra3d.jpg" srcset="assets/proyectos/innra3d-640.jpg 640w, assets/proyectos/innra3d.jpg 1280w" sizes="(max-width: 639px) 92vw, 880px" alt="Portada de INNRA3D" width="1280" height="800" loading="lazy" hidden data-href="https://s0k1x.github.io/INNRA3D/">
+            <img src="assets/proyectos/aurevix-os-2.jpg" srcset="assets/proyectos/aurevix-os-2-640.jpg 640w, assets/proyectos/aurevix-os-2.jpg 1280w" sizes="(max-width: 639px) 92vw, 880px" alt="Los niveles de rendimiento de AUREVIX OS" width="1280" height="800" loading="lazy" hidden data-href="https://s0k1x.github.io/aurevix-OS/">
+            <img src="assets/proyectos/malaga-reventa.jpg" srcset="assets/proyectos/malaga-reventa-640.jpg 640w, assets/proyectos/malaga-reventa.jpg 1280w" sizes="(max-width: 639px) 92vw, 880px" alt="Portada de Reventa.Malaga" width="1280" height="800" loading="lazy" hidden data-href="https://s0k1x.github.io/Malaga-reventa/">
           </a>
         </div>
       </div>
@@ -92,19 +95,19 @@
     <div class="wrap">
       <div class="group">
         <div class="section-head">
-          <h2 id="dest-h">Proyectos destacados</h2>
+          <h2 id="dest-h">Webs y apps publicadas</h2>
           <p>Cuatro webs publicadas. Todas se abren en el navegador.</p>
         </div>
         <div class="grid">
           <a class="card card--open span-6" href="https://s0k1x.github.io/s0k1x-skill/docs/" target="_blank" rel="noopener">
             <h3>s0k1x-skill</h3>
             <p>35 skills para Claude Code, Codex, Gemini y Grok, con una skill que elige cuál usar en cada tarea.</p>
-            <div class="panel shot"><img class="frame__img" src="assets/proyectos/s0k1x-skill-2.jpg" alt="Las skills de s0k1x-skill agrupadas por área" loading="lazy" width="1280" height="800"></div>
+            <div class="panel shot"><img class="frame__img" src="assets/proyectos/s0k1x-skill-2.jpg" srcset="assets/proyectos/s0k1x-skill-2-640.jpg 640w, assets/proyectos/s0k1x-skill-2.jpg 1280w" sizes="(max-width: 639px) 92vw, 50vw" alt="Las skills de s0k1x-skill agrupadas por área" loading="lazy" width="1280" height="800"></div>
           </a>
           <a class="card card--open span-6" href="https://s0k1x.github.io/INNRA3D/" target="_blank" rel="noopener">
             <h3>INNRA3D</h3>
             <p>Recorre cualquier casa en 3D desde el navegador, con luz real y planos automáticos. Lee 12 formatos.</p>
-            <div class="panel shot"><img class="frame__img" src="assets/proyectos/innra3d-2.jpg" alt="INNRA3D recorriendo un modelo 3D en primera persona" loading="lazy" width="1280" height="800"></div>
+            <div class="panel shot"><img class="frame__img" src="assets/proyectos/innra3d-2.jpg" srcset="assets/proyectos/innra3d-2-640.jpg 640w, assets/proyectos/innra3d-2.jpg 1280w" sizes="(max-width: 639px) 92vw, 50vw" alt="INNRA3D recorriendo un modelo 3D en primera persona" loading="lazy" width="1280" height="800"></div>
           </a>
         </div>
       </div>
@@ -113,19 +116,19 @@
           <a class="card card--open span-6" href="https://s0k1x.github.io/aurevix-OS/" target="_blank" rel="noopener">
             <h3>AUREVIX OS</h3>
             <p>Windows 11 oficial con una capa propia: tres niveles de rendimiento y diagnóstico que no envía datos.</p>
-            <div class="panel shot"><img class="frame__img" src="assets/proyectos/aurevix-os-2.jpg" alt="Los niveles de rendimiento de AUREVIX OS" loading="lazy" width="1280" height="800"></div>
+            <div class="panel shot"><img class="frame__img" src="assets/proyectos/aurevix-os-2.jpg" srcset="assets/proyectos/aurevix-os-2-640.jpg 640w, assets/proyectos/aurevix-os-2.jpg 1280w" sizes="(max-width: 639px) 92vw, 50vw" alt="Los niveles de rendimiento de AUREVIX OS" loading="lazy" width="1280" height="800"></div>
           </a>
           <a class="card card--open span-6" href="https://s0k1x.github.io/Malaga-reventa/" target="_blank" rel="noopener">
             <h3>Reventa.Malaga</h3>
             <p>Tienda de edición limitada en Málaga: relojes, perfumes y ropa, con panel para pedidos y cupones.</p>
-            <div class="panel shot"><img class="frame__img" src="assets/proyectos/malaga-reventa.jpg" alt="Portada de la tienda Reventa.Malaga" loading="lazy" width="1280" height="800"></div>
+            <div class="panel shot"><img class="frame__img" src="assets/proyectos/malaga-reventa.jpg" srcset="assets/proyectos/malaga-reventa-640.jpg 640w, assets/proyectos/malaga-reventa.jpg 1280w" sizes="(max-width: 639px) 92vw, 50vw" alt="Portada de la tienda Reventa.Malaga" loading="lazy" width="1280" height="800"></div>
           </a>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="section" id="mas" aria-labelledby="mas-h">
+  <section class="section ground-inverse" id="mas" aria-labelledby="mas-h" data-moment="iris-opens" data-moment-opts='{"from": "base"}'>
     <div class="wrap">
       <div class="section-head">
         <h2 id="mas-h">Más proyectos</h2>
@@ -156,16 +159,16 @@
       </div>
       <div class="tools-row" aria-label="Herramientas con las que trabajo">
         <span class="t-label">Trabajo con</span>
-        <img src="assets/icons/javascript.svg" alt="JavaScript" title="JavaScript" width="22" height="22">
-        <img src="assets/icons/python.svg" alt="Python" title="Python" width="22" height="22">
-        <img src="assets/icons/nodejs.svg" alt="Node.js" title="Node.js" width="20" height="22">
-        <img src="assets/icons/git.svg" alt="Git" title="Git" width="22" height="22">
-        <img class="ink" src="assets/icons/github.svg" alt="GitHub" title="GitHub" width="22" height="22">
-        <img src="assets/icons/claude.svg" alt="Claude" title="Claude" width="22" height="22">
-        <img src="assets/icons/supabase.svg" alt="Supabase" title="Supabase" width="22" height="22">
-        <img src="assets/icons/cloudflare.svg" alt="Cloudflare" title="Cloudflare" width="44" height="22">
-        <img src="assets/icons/visual-studio-code.svg" alt="VS Code" title="VS Code" width="22" height="22">
-        <img src="assets/icons/kalilinux.svg" alt="Kali Linux" title="Kali Linux" width="28" height="22">
+        <img src="assets/icons/javascript.svg" loading="lazy" alt="JavaScript" title="JavaScript" width="22" height="22">
+        <img src="assets/icons/python.svg" loading="lazy" alt="Python" title="Python" width="22" height="22">
+        <img src="assets/icons/nodejs.svg" loading="lazy" alt="Node.js" title="Node.js" width="20" height="22">
+        <img src="assets/icons/git.svg" loading="lazy" alt="Git" title="Git" width="22" height="22">
+        <img class="ink" src="assets/icons/github.svg" loading="lazy" alt="GitHub" title="GitHub" width="22" height="22">
+        <img src="assets/icons/claude.svg" loading="lazy" alt="Claude" title="Claude" width="22" height="22">
+        <img src="assets/icons/supabase.svg" loading="lazy" alt="Supabase" title="Supabase" width="22" height="22">
+        <img src="assets/icons/cloudflare.svg" loading="lazy" alt="Cloudflare" title="Cloudflare" width="44" height="22">
+        <img src="assets/icons/visual-studio-code.svg" loading="lazy" alt="VS Code" title="VS Code" width="22" height="22">
+        <img src="assets/icons/kalilinux.svg" loading="lazy" alt="Kali Linux" title="Kali Linux" width="28" height="22">
       </div>
     </div>
   </section>
