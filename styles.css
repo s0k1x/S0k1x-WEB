@@ -2,17 +2,17 @@
 .d-win { border-radius: 12px; overflow: hidden; font: 400 14px/1.4 var(--font-text); }
 .d-win--dark { background: var(--p-surface); color: var(--p-ink); box-shadow: 0 0 0 1px rgb(255 255 255 / .08), 0 30px 70px -30px rgb(0 0 0 / .8); }
 .d-win__bar { display: flex; align-items: center; gap: 14px; height: 44px; padding: 0 14px; border-bottom: 1px solid rgb(255 255 255 / .07); }
-.d-win__dots { display: flex; gap: 6px; flex: none; } .d-win__dots i { width: 10px; height: 10px; border-radius: 50%; background: #3a2b35; }
+.d-win__dots { display: flex; gap: 6px; flex: none; } .d-win__dots i { width: 10px; height: 10px; border-radius: 50%; background: #2a3242; }
 .win__tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
 .win__tabs::-webkit-scrollbar { display: none; }
 .win__tabs button { flex: none; border: 0; background: none; color: var(--p-muted); font: 500 13px/1 var(--font-text); padding: 8px 12px; border-radius: 99px; cursor: pointer; transition: color .2s, background-color .2s; }
 .win__tabs button:hover { color: var(--p-ink); }
-.win__tabs button[aria-selected="true"] { background: rgb(255 72 139 / .14); color: var(--p-ink); }
+.win__tabs button[aria-selected="true"] { background: rgb(90 185 252 / .14); color: var(--p-ink); }
 .win__screen { position: relative; display: block; aspect-ratio: 16 / 10; background: var(--p-bg); overflow: hidden; }
 .win__screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform .6s var(--m-ease, ease); }
 .win__screen img[hidden] { display: none; }
 @media (hover: hover) { .win__screen:hover img { transform: scale(1.025); } }
-.hero--centred .hero__window { background: radial-gradient(ellipse 60% 70% at 50% 0%, rgb(255 72 139 / .18), transparent 70%); }
+.hero--centred .hero__window { background: radial-gradient(ellipse 60% 70% at 50% 0%, rgb(90 185 252 / .18), transparent 70%); }
 .shot { --p-h: clamp(220px, 26vw, 340px); aspect-ratio: auto; overflow: hidden; }
 .shot .frame__img { object-position: top; }
 .term__body { margin: 0; padding: 18px 20px; font: 400 13px/1.75 var(--font-mono); color: var(--p-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -29,7 +29,7 @@
 }
 
 /* contraste de la entradilla de la portada y palabra del cierre sin cortes */
-.hero--centred .hero__lead { color: #cfc4cc; }
+.hero--centred .hero__lead { color: #c3cad6; }
 .close__word { line-height: 1.05; padding-bottom: .06em; overflow: visible; font-size: clamp(64px, 19vw, 260px); }
 /* tablet: los cuatro destacados caben en una pantalla, sin hueco */
 @media (min-width: 640px) and (max-width: 1023px) { #destacados { --h: 1; } #destacados .shot { --p-h: 180px; } }
