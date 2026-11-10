@@ -241,7 +241,7 @@ function resaltar(id) {
   if (num) select(+id);
   const t = num ? document.getElementById('proyectos') : document.getElementById(String(id));
   if (!t) return; t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
-  const box = (num && $('#viewer')) || t.querySelector('.term, .grid, .tools, .faq, .head') || t;
+  const box = (num && list.querySelector(`[data-i="${+id}"]`)) || t.querySelector('.kit, .projects, .head') || t;
   box.classList.remove('fx-hl'); void box.offsetWidth; box.classList.add('fx-hl'); setTimeout(() => box.classList.remove('fx-hl'), 2400);
 }
 function clonar(n = 3) {
@@ -340,79 +340,36 @@ async function think(evento, extra = {}, gap = 6000) {
    ========================================================= */
 let PROJECTS = [];
 async function getProjects() {
-  let cfg = { proyectos: [], mostrarOtrosPublicos: true }, gh = [];
+  let cfg = { proyectos: [] };
   try { const r = await fetch('projects.json', { cache: 'no-cache' }); if (r.ok) cfg = await r.json(); } catch {}
-  try {
-    const c = sessionStorage.getItem('repos3');
-    if (c) gh = JSON.parse(c);
-    else {
-      const r = await fetch(`https://api.github.com/users/${CONFIG.github}/repos?per_page=100&sort=pushed`);
-      if (r.ok) { gh = (await r.json()).filter((x) => !x.fork).map((x) => ({ name: x.name, lang: x.language, desc: x.description, url: x.html_url, home: x.homepage, stars: x.stargazers_count, pushed: x.pushed_at })); sessionStorage.setItem('repos3', JSON.stringify(gh)); }
-    }
-  } catch {}
-  const by = new Map(gh.map((g) => [g.name.toLowerCase(), g])), used = new Set(), out = [];
-  for (const p of cfg.proyectos || []) {
-    if (p.repo) used.add(p.repo.toLowerCase());
-    if (p.mostrar === false) continue;
-    const g = (!p.privado && p.repo && by.get(p.repo.toLowerCase())) || {};
-    const name = p.nombre || p.repo; if (!name) continue;
-    out.push({ id: p.repo || name, name, priv: !!p.privado, lang: p.lenguaje || g.lang, stars: p.privado ? null : g.stars, pushed: g.pushed, desc: p.descripcion || g.desc || '',
-      web: p.web || g.home || '', code: p.privado ? '' : (g.url || (p.repo ? `https://github.com/${CONFIG.github}/${p.repo}` : '')), images: (p.imagenes || []).filter(Boolean), links: (p.enlaces || []).filter((l) => l?.url) });
-  }
-  if (cfg.mostrarOtrosPublicos) gh.filter((g) => !used.has(g.name.toLowerCase()) && g.name.toLowerCase() !== CONFIG.github).forEach((g) => out.push({ id: g.name, name: g.name, lang: g.lang, stars: g.stars, pushed: g.pushed, desc: g.desc || '', web: g.home || '', code: g.url, images: [], links: [] }));
-  return out;
+  return (cfg.proyectos || []).filter((p) => p && p.mostrar !== false && (p.nombre || p.repo)).map((p) => ({
+    id: p.repo || p.nombre, name: p.nombre || p.repo, priv: !!p.privado, lang: p.lenguaje || '', year: p.año || p.ano || '',
+    desc: p.descripcion || '', web: p.web || '', code: p.codigo || (!p.privado && p.repo ? `https://github.com/${CONFIG.github}/${p.repo}` : ''),
+    images: (p.imagenes || []).filter(Boolean), links: (p.enlaces || []).filter((l) => l?.url),
+  }));
 }
 const hue = (p) => HUES[hash(p.id) % HUES.length];
-function cover(p) {
-  const r = rng(hash(p.id)), c = hue(p), W = 800, H = 300, kind = hash(p.id + '#') % 4;
-  let g = `<rect width="${W}" height="${H}" fill="#0a0a0a"/><defs><radialGradient id="cg" cx="${30 + r() * 40}%" cy="${30 + r() * 40}%" r="70%"><stop offset="0" stop-color="${c}" stop-opacity=".3"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient></defs><rect width="${W}" height="${H}" fill="url(#cg)"/>`;
-  const st = (o, w = 1.2) => `stroke="${c}" stroke-opacity="${o}" stroke-width="${w}" fill="none"`;
-  if (kind === 0) { for (let x = 0; x <= W; x += 40) g += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" ${st(.12)}/>`; for (let y = 0; y <= H; y += 40) g += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" ${st(.12)}/>`;
-    for (let i = 0; i < 9; i++) g += `<rect x="${Math.round(r() * 18) * 40}" y="${Math.round(r() * 6) * 40}" width="${40 * (1 + Math.round(r() * 2))}" height="40" fill="${c}" fill-opacity="${(.08 + r() * .3).toFixed(2)}"/>`; }
-  else if (kind === 1) { const f = 1 + r() * 2, ph = r() * 6; for (let x = 20; x < W; x += 22) for (let y = 20; y < H; y += 22) { const v = (Math.sin(x / 90 * f + ph) + Math.cos(y / 60 + x / 200)) / 2; g += `<circle cx="${x}" cy="${y}" r="${(1 + Math.max(0, v) * 3).toFixed(1)}" fill="${c}" fill-opacity="${(.15 + Math.max(0, v) * .7).toFixed(2)}"/>`; } }
-  else if (kind === 2) { const cx = 200 + r() * 400, cy = 80 + r() * 140; for (let i = 1; i < 14; i++) g += `<ellipse cx="${cx}" cy="${cy}" rx="${i * 38}" ry="${i * 15}" ${st(.5 - i * .033)}/>`; }
-  else { for (let i = 0; i < 24; i++) { const y0 = i * 13 + 8, a = 14 + r() * 40, f = .006 + r() * .006; let d = `M0 ${y0}`; for (let x = 0; x <= W; x += 20) d += ` L${x} ${(y0 + Math.sin(x * f + i * .3) * a).toFixed(1)}`; g += `<path d="${d}" ${st(.12 + (i % 5) * .07, 1.3)}/>`; } }
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${g}</svg>`;
-}
 let sel = 0;
-const plist = $('#plist');
+const list = $('#projects');
 function renderProjects() {
-  $('#statProj').textContent = PROJECTS.length;
-  $('#projLead').textContent = `${PROJECTS.length} proyectos. Elige uno o pasa de uno a otro con las flechas.`;
-  plist.innerHTML = PROJECTS.map((p, i) => `<li><button class="pitem" type="button" role="option" data-i="${i}" aria-selected="${i === sel}"><i style="background:${hue(p)}"></i><span>${esc(p.name)}</span><em>${p.priv ? 'privado' : esc(p.lang || '')}</em></button></li>`).join('');
-  plist.querySelectorAll('.pitem').forEach((b) => b.addEventListener('click', () => select(+b.dataset.i, true)));
-  select(0);
+  $('#projCount').textContent = PROJECTS.length ? `${PROJECTS.length} proyectos` : '';
+  if (!PROJECTS.length) { list.innerHTML = '<li class="empty">Pronto habrá proyectos aquí.</li>'; return; }
+  list.innerHTML = PROJECTS.map((p, i) => {
+    const meta = [p.priv && '<span class="tag">Privado</span>', p.lang && `<span>${esc(p.lang)}</span>`, p.year && `<span>${esc(p.year)}</span>`].filter(Boolean).join('');
+    const links = [p.web && `<a href="${esc(p.web)}" target="_blank" rel="noopener">Web ↗</a>`, p.code && `<a href="${esc(p.code)}" target="_blank" rel="noopener">Código ↗</a>`, ...p.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.texto || 'Referencia')} ↗</a>`)].filter(Boolean).join('');
+    return `<li class="project" data-i="${i}"><div><h3>${esc(p.name)}</h3>${p.desc ? `<p>${esc(p.desc)}</p>` : ''}${meta ? `<div class="meta">${meta}</div>` : ''}${links ? `<div class="links">${links}</div>` : ''}${p.images.length ? `<div class="shots">${p.images.slice(0, 4).map((src, k) => `<a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="${esc(p.name)}, imagen ${k + 1}" loading="lazy"></a>`).join('')}</div>` : ''}</div></li>`;
+  }).join('');
+  list.querySelectorAll('.project').forEach((li) => li.addEventListener('pointerenter', () => select(+li.dataset.i, true)));
 }
-function showShot(p, k) {
-  const box = $('#vCover');
-  if (!p.images.length) { box.innerHTML = cover(p); return; }
-  box.innerHTML = `<img src="${esc(p.images[k])}" alt="${esc(p.name)}, imagen ${k + 1} de ${p.images.length}">` + (p.images.length > 1 ? `<div class="shots">${p.images.map((_, i) => `<button type="button" aria-label="Imagen ${i + 1}" aria-current="${i === k}" data-k="${i}"></button>`).join('')}</div>` : '');
-  box.querySelector('img').addEventListener('error', () => { box.innerHTML = cover(p); }, { once: true });
-  box.querySelectorAll('.shots button').forEach((d) => d.addEventListener('click', () => showShot(p, +d.dataset.k)));
-}
+let hoverT;
 function select(i, user) {
-  const p = PROJECTS[i]; if (!p) return;
-  sel = i;
-  plist.querySelectorAll('.pitem').forEach((b) => { const on = +b.dataset.i === i; b.setAttribute('aria-selected', on); if (on && user) { if (mobile()) plist.scrollTo({ left: b.offsetLeft - 12, behavior: 'smooth' }); else plist.scrollTo({ top: b.offsetTop - plist.clientHeight / 2 + b.offsetHeight / 2, behavior: 'smooth' }); } });
-  $('#vPath').textContent = `~/s0k1x/${p.id}`;
-  $('#vCount').textContent = `${String(i + 1).padStart(2, '0')} / ${String(PROJECTS.length).padStart(2, '0')}`;
-  showShot(p, 0);
-  $('#vName').textContent = p.name;
-  $('#vMeta').innerHTML = [p.priv && '<span class="tag">Privado</span>', p.lang && `<span>${esc(p.lang)}</span>`, p.stars != null && `<span>★ ${p.stars}</span>`, p.pushed && `<span>${new Date(p.pushed).getFullYear()}</span>`].filter(Boolean).join('');
-  $('#vDesc').textContent = p.desc || 'Todavía sin descripción. El código habla por sí solo.';
-  $('#vActs').innerHTML = [p.web && `<a class="btn btn--primary" href="${esc(p.web)}" target="_blank" rel="noopener">Abrir la web</a>`, p.code && `<a class="btn ${p.web ? 'btn--ghost' : 'btn--primary'}" href="${esc(p.code)}" target="_blank" rel="noopener">Ver el código</a>`].filter(Boolean).join('');
-  $('#vLinks').innerHTML = p.links.map((l) => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.texto || 'Referencia')} ↗</a>`).join('');
-  if (currentSection === 'proyectos') tintTarget = hex2(hue(p));
-  if (user) think('proyecto', {}, 4000);
+  if (!PROJECTS[i]) return; sel = i;
+  list.querySelectorAll('.project').forEach((li) => li.classList.toggle('is-on', +li.dataset.i === i));
+  if (currentSection === 'proyectos') tintTarget = hex2(hue(PROJECTS[i]));
+  if (user) { clearTimeout(hoverT); hoverT = setTimeout(() => think('proyecto', {}, 6000), 700); }
 }
-const step = (d) => select((sel + d + PROJECTS.length) % PROJECTS.length, true);
-$('#prevBtn').addEventListener('click', () => step(-1));
-$('#nextBtn').addEventListener('click', () => step(1));
-plist.addEventListener('keydown', (e) => { const k = e.key; if (k === 'ArrowDown' || k === 'ArrowRight') { e.preventDefault(); step(1); plist.querySelector(`[data-i="${sel}"]`).focus(); } else if (k === 'ArrowUp' || k === 'ArrowLeft') { e.preventDefault(); step(-1); plist.querySelector(`[data-i="${sel}"]`).focus(); } });
 
-/* =========================================================
-   Secciones, menú, apariciones
-   ========================================================= */
+/* ---------- secciones ---------- */
 let currentSection = 'inicio';
 const currentProject = () => currentSection === 'proyectos' ? PROJECTS[sel] : null;
 const seen = new Set();
@@ -422,33 +379,11 @@ function enterSection(el) {
   if (currentSection === el.id) return;
   currentSection = el.id;
   tintTarget = el.id === 'proyectos' && PROJECTS[sel] ? hex2(hue(PROJECTS[sel])) : [255, 255, 255];
-  document.querySelectorAll('.nav__links a').forEach((a) => a.classList.toggle('is-here', a.getAttribute('href') === '#' + el.id));
+  document.querySelectorAll('.nav nav a').forEach((a) => a.classList.toggle('is-here', a.getAttribute('href') === '#' + el.id));
   if (seen.has(el.id)) return; seen.add(el.id);
   if (el.id !== 'inicio') think('seccion', {}, 5000);
 }
-document.documentElement.classList.add('js');
-const rio = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); rio.unobserve(e.target); } }), { threshold: .12 });
-document.querySelectorAll('.rv').forEach((n) => rio.observe(n));
-const flow = $('#flow'), steps = [...flow.querySelectorAll('.step')];
-const fio = new IntersectionObserver(() => { let n = 0; steps.forEach((st, i) => { const r = st.getBoundingClientRect(); if (r.top < innerHeight * .7) { st.classList.add('is-on'); n = i + 1; } }); flow.style.setProperty('--p', n ? (n - .5) / steps.length : 0); }, { threshold: [0, .5, 1] });
-steps.forEach((st) => fio.observe(st)); addEventListener('scroll', () => fio.takeRecords().length || fio.observe(steps[0]), { passive: true });
-document.addEventListener('pointermove', (e) => { const c = e.target.closest?.('.card'); if (c) { const r = c.getBoundingClientRect(); c.style.setProperty('--x', `${e.clientX - r.left}px`); c.style.setProperty('--y', `${e.clientY - r.top}px`); } }, { passive: true });
-const menuBtn = $('.menu-btn'), setMenu = (on) => { document.documentElement.classList.toggle('is-menu', on); menuBtn.setAttribute('aria-expanded', on); };
-menuBtn.addEventListener('click', () => setMenu(!document.documentElement.classList.contains('is-menu')));
-$('#sheet').addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
-addEventListener('resize', () => { if (innerWidth >= 900) setMenu(false); });
 document.querySelectorAll('.copy').forEach((b) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.copy); } catch {} b.textContent = 'Copiado'; b.classList.add('is-done'); setTimeout(() => { b.textContent = 'Copiar'; b.classList.remove('is-done'); }, 1800); }));
-// terminal de la portada
-const hCmd = $('#heroCmd'), hOut = $('#heroOut');
-const HLINES = [['whoami', 's0k1x · desarrollador de webs y herramientas para IA'], ['ls proyectos | wc -l', () => `${PROJECTS.length || 11} proyectos`], ['cat ahora.txt', 'mejorando s0k1x-skill (35 skills, 3 agentes)'], ['chispa --status', 'despierta y con malas intenciones']];
-(async function heroTerm() {
-  let i = 0;
-  while (true) {
-    const [c, o] = HLINES[i++ % HLINES.length]; hCmd.textContent = ''; hOut.innerHTML = '&nbsp;';
-    for (const ch of c) { hCmd.textContent += ch; await sleep(reduced ? 0 : 45); }
-    await sleep(reduced ? 0 : 260); hOut.textContent = '→ ' + (typeof o === 'function' ? o() : o); await sleep(reduced ? 6000 : 3200);
-  }
-})();
 
 /* =========================================================
    Bucle
@@ -528,9 +463,6 @@ addEventListener('scroll', poke, { passive: true });
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => { if (document.hidden) hiddenAt = Date.now(); else if (Date.now() - hiddenAt > 15000) think('vuelve', {}, 8000); });
 
-/* ---------- herramientas ---------- */
-const TOOLS = [['javascript', 'JavaScript'], ['python', 'Python'], ['html', 'HTML'], ['css', 'CSS'], ['nodejs', 'Node.js'], ['git', 'Git'], ['github', 'GitHub', 1], ['claude', 'Claude'], ['supabase', 'Supabase'], ['cloudflare', 'Cloudflare'], ['visual-studio-code', 'VS Code'], ['linux-tux', 'Linux']];
-$('#tools').innerHTML = TOOLS.map(([f, l, ink]) => `<li><img src="assets/icons/${f}.svg" alt="" class="${ink ? 'ink' : ''}" loading="lazy"><span>${l}</span></li>`).join('');
 $('#year').textContent = new Date().getFullYear();
 
 /* ---------- arranque ---------- */
