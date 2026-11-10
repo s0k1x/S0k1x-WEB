@@ -1,0 +1,65 @@
+/* Animaciones de la página. Solo transform, opacity, filter y clip-path. Todo se apaga con prefers-reduced-motion. */
+:root { --a-out: cubic-bezier(.16, 1, .3, 1); --a-soft: cubic-bezier(.22, .8, .24, 1); }
+
+/* 1. Entrada de la portada: aparece de arriba abajo con un desenfoque que se aclara */
+.a-on .hero .a-in { opacity: 0; translate: 0 14px; filter: blur(8px); }
+.a-on .hero.is-ready .a-in { opacity: 1; translate: none; filter: none;
+  transition: opacity .7s var(--a-soft), translate .9s var(--a-out), filter .7s var(--a-soft); transition-delay: calc(var(--i, 0) * 70ms); }
+.a-on .hero .a-w { display: inline-block; }
+.a-on .hero .hero__window { perspective: 1600px; }
+.a-on .hero #win { opacity: 0; translate: 0 48px; rotate: x 14deg; scale: .96; transform-origin: 50% 0; }
+.a-on .hero.is-ready #win { opacity: 1; translate: none; rotate: none; scale: none; transition: opacity .9s var(--a-soft) .45s, translate 1.3s var(--a-out) .45s, rotate 1.3s var(--a-out) .45s, scale 1.3s var(--a-out) .45s; }
+
+/* 2. Al hacer scroll: cada pieza sube y se enfoca una vez, en cascada */
+.a-on .a-rv { opacity: 0; translate: 0 28px; filter: blur(6px); }
+.a-on .a-rv.is-in { opacity: 1; translate: none; filter: none;
+  transition: opacity .8s var(--a-soft), translate 1s var(--a-out), filter .8s var(--a-soft); transition-delay: calc(var(--i, 0) * 90ms); }
+
+/* 3. Tarjetas: un foco de luz sigue al cursor y el borde se ilumina */
+.card--open { transition: transform .5s var(--a-out); }
+.card--open .shot { position: relative; isolation: isolate; }
+.card--open .shot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2; opacity: 0;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgb(90 185 252 / .13), transparent 60%);
+  box-shadow: inset 0 0 0 1px rgb(90 185 252 / .22); transition: opacity .35s var(--a-soft); }
+.card--open .shot img { transition: transform .9s var(--a-out); }
+@media (hover: hover) {
+  .card--open:hover { transform: translateY(-4px); }
+  .card--open:hover .shot::after { opacity: 1; }
+  .card--open:hover .shot img { transform: scale(1.035); }
+}
+
+/* 4. Ventana: indicador que se desliza entre pestañas y captura que entra con fundido */
+.win__tabs { position: relative; }
+.win__tabs .a-ind { position: absolute; left: 0; top: 50%; height: 29px; margin-top: -14.5px; border-radius: 99px; background: rgb(90 185 252 / .15);
+  box-shadow: inset 0 0 0 1px rgb(90 185 252 / .25); pointer-events: none; transition: transform .45s var(--a-out), width .45s var(--a-out); }
+.win__tabs button[aria-selected="true"] { background: none; }
+.win__tabs button { position: relative; z-index: 1; }
+.win__screen img.a-enter { z-index: 1; animation: a-shot .6s var(--a-out) both; }
+@keyframes a-shot { from { opacity: 0; filter: blur(10px); transform: scale(1.04); } }
+
+/* 5. Terminal: las líneas se escriben de izquierda a derecha cuando la ves */
+.a-on .term .tl { display: inline-block; clip-path: inset(0 100% 0 0); }
+.a-on .term.is-in .tl { clip-path: inset(0 0 0 0); transition: clip-path var(--d, .5s) steps(var(--s, 24), end); transition-delay: calc(var(--i, 0) * 260ms + .2s); }
+.term__body::after { content: "▌"; color: var(--p-accent); opacity: 0; }
+.term.is-done .term__body::after { opacity: 1; animation: a-caret 1.1s steps(1) 4; }
+@keyframes a-caret { 50% { opacity: 0; } }
+
+/* 6. Cierre: las letras de s0k1x suben una a una; al pasar el ratón hacen una ola */
+.a-on .close__word .a-l { display: inline-block; opacity: 0; translate: 0 .35em; }
+.a-on .close__word.is-in .a-l { opacity: 1; translate: none; transition: opacity .7s var(--a-soft), translate 1s var(--a-out), transform .5s var(--a-out), color .4s var(--a-soft); transition-delay: calc(var(--i) * 70ms); }
+@media (hover: hover) {
+  .close__word .a-l { transition: transform .5s var(--a-out), color .4s var(--a-soft); }
+  .a-on .close__word.is-in:hover .a-l { transform: translateY(-.08em); color: var(--p-accent); transition-delay: calc(var(--i) * 45ms); }
+}
+
+/* 7. Iconos: entran en cascada */
+.a-on .tools-row.a-rv img { opacity: 0; translate: 0 8px; }
+.a-on .tools-row.is-in img { opacity: .8; translate: none; transition: opacity .5s var(--a-soft), translate .6s var(--a-out), transform .2s; transition-delay: calc(var(--i, 0) * 50ms + .15s); }
+.a-on .tools-row.is-in img:hover { opacity: 1; transform: translateY(-2px); transition-delay: 0s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .a-on .a-in, .a-on .a-rv, .a-on .hero #win, .a-on .close__word .a-l, .a-on .tools-row img { opacity: 1 !important; translate: none !important; rotate: none !important; scale: none !important; filter: none !important; transition: none !important; }
+  .a-on .term .tl { clip-path: none !important; transition: none !important; }
+  .card--open, .card--open .shot img, .win__tabs .a-ind, .close__word .a-l { transition: none !important; transform: none !important; }
+  .win__screen img.a-enter, .term.is-done .term__body::after { animation: none !important; }
+}
