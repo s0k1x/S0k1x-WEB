@@ -33,3 +33,5 @@
 .close__word { line-height: 1.05; padding-bottom: .06em; overflow: visible; font-size: clamp(64px, 19vw, 260px); }
 /* tablet: los cuatro destacados caben en una pantalla, sin hueco */
 @media (min-width: 640px) and (max-width: 1023px) { #destacados { --h: 1; } #destacados .shot { --p-h: 180px; } }
+/* móvil: las cuatro pestañas de la ventana caben sin cortarse */
+@media (max-width: 639px) { #win .d-win__dots { display: none; } #win .d-win__bar { padding: 0 8px; } .win__tabs button { padding: 7px 8px; font-size: 12px; } .win__tabs .a-ind { height: 26px; margin-top: -13px; } .tab-long { display: none; } }
