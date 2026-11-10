@@ -1,7 +1,7 @@
 /* CSS de página: solo dentro de las piezas visuales (la ventana, las capturas, las fichas de iconos) */
 .d-win { border-radius: 12px; overflow: hidden; font: 400 14px/1.4 var(--font-text); }
 .d-win--dark { background: var(--p-surface); color: var(--p-ink); box-shadow: 0 0 0 1px rgb(255 255 255 / .08), 0 30px 70px -30px rgb(0 0 0 / .8); }
-.d-win__bar { display: flex; align-items: center; gap: 14px; height: 44px; padding: 0 14px; border-bottom: 1px solid rgb(255 255 255 / .07); }
+.d-win__bar { display: flex; align-items: center; gap: 14px; height: 44px; padding: 0 14px; background: rgb(255 255 255 / .03); }
 .d-win__dots { display: flex; gap: 6px; flex: none; } .d-win__dots i { width: 10px; height: 10px; border-radius: 50%; background: #2a3242; }
 .win__tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
 .win__tabs::-webkit-scrollbar { display: none; }
@@ -16,7 +16,7 @@
 .shot .frame__img { object-position: top; }
 .term__body { margin: 0; padding: 18px 20px; font: 400 13px/1.75 var(--font-mono); color: var(--p-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 .term__body .p { color: var(--p-muted); } .term__body .ok { color: var(--p-accent); }
-.tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 22px; margin-top: 72px; }
+.tools-row { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 22px; margin-top: clamp(72px, 12vh, 150px); }
 .tools-row img { height: 22px; width: auto; opacity: .8; transition: opacity .2s, transform .2s; } .tools-row img:hover { opacity: 1; transform: translateY(-2px); }
 .tools-row img.ink { filter: invert(1); }
 .ground-inverse .tools-row img.ink { filter: none; }
@@ -32,6 +32,6 @@
 .hero--centred .hero__lead { color: #c3cad6; }
 .close__word { line-height: 1.05; padding-bottom: .06em; overflow: visible; font-size: clamp(64px, 19vw, 260px); }
 /* tablet: los cuatro destacados caben en una pantalla, sin hueco */
-@media (min-width: 640px) and (max-width: 1023px) { #destacados { --h: 1; } #destacados .shot { --p-h: 180px; } }
+@media (min-width: 640px) and (max-width: 1023px) { #destacados .card { grid-column: 1 / -1; } #destacados .group .shot { --p-h: calc((100svh - 640px) / 2); } #destacados .group:last-child .shot { --p-h: calc((100svh - 440px) / 2); } .tools-row { margin-top: 24px; } #mas .term { margin-top: 20px; } #mas .term__body { font-size: 12px; line-height: 1.55; } }
 /* móvil: las cuatro pestañas de la ventana caben sin cortarse */
 @media (max-width: 639px) { #win .d-win__dots { display: none; } #win .d-win__bar { padding: 0 8px; } .win__tabs button { padding: 7px 8px; font-size: 12px; } .win__tabs .a-ind { height: 26px; margin-top: -13px; } .tab-long { display: none; } }
